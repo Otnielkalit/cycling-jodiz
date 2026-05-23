@@ -23,6 +23,18 @@ struct RouteCardModel: Identifiable {
     let targetPreferredKm: Double?
     /// Panjang rute di jalan (MapKit / jumlah kaki); untuk rekomendasi & teks bantuan.
     let routeMeters: CLLocationDistance
+    /// Durasi rencana (detik) — ETA MapKit cycling/walking, atau perkiraan sepeda untuk jalur mobil.
+    let plannedDurationSeconds: TimeInterval
+    /// Kecepatan rata-rata implisit rencana (km/j) = jarak / waktu.
+    let impliedAverageSpeedKmh: Double
+    /// Perkiraan belokan tajam dari polyline (bukan hitungan persimpangan GIS).
+    let sharpTurnEstimateCount: Int
+    /// Langkah turn-by-turn ringkas dari `MKRoute.steps` (boleh kosong).
+    let breakdownRows: [RouteBreakdownRow]
+    /// Naik turun; `nil` bila tidak ada sumber data.
+    let elevationGainMeters: Double?
+    /// Chip singkat saat kartu direkomendasikan (mis. “Best match”).
+    let recommendationTag: String?
 
     enum RouteTransportKind: Hashable {
         case cycling
@@ -34,7 +46,7 @@ struct RouteCardModel: Identifiable {
     }
 
     /// Salin kartu dengan flag rekomendasi baru (dipakai builder setelah membandingkan jarak vs target).
-    func settingRecommended(_ value: Bool) -> RouteCardModel {
+    func settingRecommended(_ value: Bool, recommendationTag: String?) -> RouteCardModel {
         RouteCardModel(
             id: id,
             title: title,
@@ -47,7 +59,13 @@ struct RouteCardModel: Identifiable {
             transportKind: transportKind,
             crowFliesMeters: crowFliesMeters,
             targetPreferredKm: targetPreferredKm,
-            routeMeters: routeMeters
+            routeMeters: routeMeters,
+            plannedDurationSeconds: plannedDurationSeconds,
+            impliedAverageSpeedKmh: impliedAverageSpeedKmh,
+            sharpTurnEstimateCount: sharpTurnEstimateCount,
+            breakdownRows: breakdownRows,
+            elevationGainMeters: elevationGainMeters,
+            recommendationTag: value ? recommendationTag : nil
         )
     }
 }
@@ -58,6 +76,9 @@ extension RouteCardModel {
         let coords0 = RoutePolylineSamples.coordinates(center: center, index: 0)
         let coords1 = RoutePolylineSamples.coordinates(center: center, index: 1)
         let coords2 = RoutePolylineSamples.coordinates(center: center, index: 2)
+        let d0: TimeInterval = 3900
+        let d1: TimeInterval = 3480
+        let d2: TimeInterval = 4320
         return [
             RouteCardModel(
                 id: UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-000000000001")!,
@@ -71,7 +92,13 @@ extension RouteCardModel {
                 transportKind: .cycling,
                 crowFliesMeters: nil,
                 targetPreferredKm: nil,
-                routeMeters: 22_400
+                routeMeters: 22_400,
+                plannedDurationSeconds: d0,
+                impliedAverageSpeedKmh: (22_400 / d0) * 3.6,
+                sharpTurnEstimateCount: RoutePolylineMetrics.sharpTurnEstimateCount(coordinates: coords0),
+                breakdownRows: [],
+                elevationGainMeters: nil,
+                recommendationTag: nil
             ),
             RouteCardModel(
                 id: UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-000000000002")!,
@@ -85,7 +112,13 @@ extension RouteCardModel {
                 transportKind: .cycling,
                 crowFliesMeters: nil,
                 targetPreferredKm: nil,
-                routeMeters: 20_500
+                routeMeters: 20_500,
+                plannedDurationSeconds: d1,
+                impliedAverageSpeedKmh: (20_500 / d1) * 3.6,
+                sharpTurnEstimateCount: RoutePolylineMetrics.sharpTurnEstimateCount(coordinates: coords1),
+                breakdownRows: [],
+                elevationGainMeters: nil,
+                recommendationTag: String(localized: "Best match")
             ),
             RouteCardModel(
                 id: UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-000000000003")!,
@@ -99,7 +132,13 @@ extension RouteCardModel {
                 transportKind: .cycling,
                 crowFliesMeters: nil,
                 targetPreferredKm: nil,
-                routeMeters: 19_200
+                routeMeters: 19_200,
+                plannedDurationSeconds: d2,
+                impliedAverageSpeedKmh: (19_200 / d2) * 3.6,
+                sharpTurnEstimateCount: RoutePolylineMetrics.sharpTurnEstimateCount(coordinates: coords2),
+                breakdownRows: [],
+                elevationGainMeters: nil,
+                recommendationTag: nil
             )
         ]
     }

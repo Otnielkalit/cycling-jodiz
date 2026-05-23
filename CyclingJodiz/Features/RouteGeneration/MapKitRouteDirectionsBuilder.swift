@@ -145,7 +145,13 @@ enum MapKitRouteDirectionsBuilder {
         start: CLLocationCoordinate2D,
         via: CLLocationCoordinate2D,
         end: CLLocationCoordinate2D
-    ) async -> (coords: [CLLocationCoordinate2D], dist: CLLocationDistance, duration: TimeInterval, kind: RouteCardModel.RouteTransportKind)? {
+    ) async -> (
+        coords: [CLLocationCoordinate2D],
+        dist: CLLocationDistance,
+        duration: TimeInterval,
+        kind: RouteCardModel.RouteTransportKind,
+        routes: [MKRoute]
+    )? {
         guard let leg1 = await primaryLegAB(from: start, to: via),
               let leg2 = await primaryLegAB(from: via, to: end) else { return nil }
         let c1 = coordinates(from: leg1.route.polyline)
@@ -158,7 +164,25 @@ enum MapKitRouteDirectionsBuilder {
             ? leg1.route.expectedTravelTime + leg2.route.expectedTravelTime
             : estimatedCyclingDuration(distanceMeters: dist)
         let kind: RouteCardModel.RouteTransportKind = bothCycling ? .cycling : .cyclingRoadEstimate
-        return (merged, dist, duration, kind)
+        return (merged, dist, duration, kind, [leg1.route, leg2.route])
+    }
+
+    private static func routeDetailMetrics(
+        coordinates: [CLLocationCoordinate2D],
+        breakdownRoutes: [MKRoute],
+        routeMeters: CLLocationDistance,
+        durationSeconds: TimeInterval
+    ) -> (
+        plannedDurationSeconds: TimeInterval,
+        impliedAverageSpeedKmh: Double,
+        sharpTurnEstimateCount: Int,
+        breakdownRows: [RouteBreakdownRow]
+    ) {
+        let dur = max(durationSeconds, 1)
+        let implied = (routeMeters / dur) * 3.6
+        let sharp = RoutePolylineMetrics.sharpTurnEstimateCount(coordinates: coordinates)
+        let rows = breakdownRoutes.isEmpty ? [] : RoutePolylineMetrics.breakdownRows(from: breakdownRoutes)
+        return (dur, implied, sharp, rows)
     }
 
     /// Penjelasan: garis lurus A→B, preferensi km (perkiraan), vs panjang jalur di jalan.
@@ -240,6 +264,7 @@ enum MapKitRouteDirectionsBuilder {
             var coords: [CLLocationCoordinate2D]
             var duration: TimeInterval
             var kind: RouteCardModel.RouteTransportKind
+            var mkRoutes: [MKRoute]
         }
 
         func bestForSide(turnLeft: Bool) async -> Best? {
@@ -252,7 +277,13 @@ enum MapKitRouteDirectionsBuilder {
                 let score = abs(trip.dist - targetMeters)
                 if score < bestScore {
                     bestScore = score
-                    winner = Best(dist: trip.dist, coords: trip.coords, duration: trip.duration, kind: trip.kind)
+                    winner = Best(
+                        dist: trip.dist,
+                        coords: trip.coords,
+                        duration: trip.duration,
+                        kind: trip.kind,
+                        mkRoutes: trip.routes
+                    )
                 }
             }
             return winner
@@ -276,6 +307,12 @@ enum MapKitRouteDirectionsBuilder {
                 localized: "Extra distance via a waypoint off the direct corridor — still ends at your destination. Check turns on-site."
             )
             let subtitle = abSubtitleAB(base: base, routeMeters: b.dist, crow: crow, targetKm: preferredLengthKm)
+            let m = routeDetailMetrics(
+                coordinates: b.coords,
+                breakdownRoutes: b.mkRoutes,
+                routeMeters: b.dist,
+                durationSeconds: b.duration
+            )
             out.append(
                 RouteCardModel(
                     id: UUID(),
@@ -289,7 +326,13 @@ enum MapKitRouteDirectionsBuilder {
                     transportKind: b.kind,
                     crowFliesMeters: crow,
                     targetPreferredKm: preferredLengthKm,
-                    routeMeters: b.dist
+                    routeMeters: b.dist,
+                    plannedDurationSeconds: m.plannedDurationSeconds,
+                    impliedAverageSpeedKmh: m.impliedAverageSpeedKmh,
+                    sharpTurnEstimateCount: m.sharpTurnEstimateCount,
+                    breakdownRows: m.breakdownRows,
+                    elevationGainMeters: nil,
+                    recommendationTag: nil
                 )
             )
             idx += 1
@@ -315,7 +358,12 @@ enum MapKitRouteDirectionsBuilder {
         guard let best = eligible.min(by: { abs(cards[$0].routeMeters - goal) < abs(cards[$1].routeMeters - goal) }) else {
             return cards
         }
-        return cards.enumerated().map { i, c in c.settingRecommended(i == best) }
+        return cards.enumerated().map { i, c in
+            c.settingRecommended(
+                i == best,
+                recommendationTag: i == best ? String(localized: "Best match") : nil
+            )
+        }
     }
 
     private static func routesForAB(
@@ -349,6 +397,12 @@ enum MapKitRouteDirectionsBuilder {
                 crow: crow,
                 targetKm: preferredLengthKm
             )
+            let m = routeDetailMetrics(
+                coordinates: coords,
+                breakdownRoutes: [route],
+                routeMeters: route.distance,
+                durationSeconds: route.expectedTravelTime
+            )
             cards.append(
                 RouteCardModel(
                     id: UUID(),
@@ -362,7 +416,13 @@ enum MapKitRouteDirectionsBuilder {
                     transportKind: .cycling,
                     crowFliesMeters: crow,
                     targetPreferredKm: preferredLengthKm,
-                    routeMeters: route.distance
+                    routeMeters: route.distance,
+                    plannedDurationSeconds: m.plannedDurationSeconds,
+                    impliedAverageSpeedKmh: m.impliedAverageSpeedKmh,
+                    sharpTurnEstimateCount: m.sharpTurnEstimateCount,
+                    breakdownRows: m.breakdownRows,
+                    elevationGainMeters: nil,
+                    recommendationTag: nil
                 )
             )
         }
@@ -412,6 +472,12 @@ enum MapKitRouteDirectionsBuilder {
                     crow: crow,
                     targetKm: preferredLengthKm
                 )
+                let m = routeDetailMetrics(
+                    coordinates: coords,
+                    breakdownRoutes: [route],
+                    routeMeters: route.distance,
+                    durationSeconds: bikeTime
+                )
                 cards.append(
                     RouteCardModel(
                         id: UUID(),
@@ -425,7 +491,13 @@ enum MapKitRouteDirectionsBuilder {
                         transportKind: .cyclingRoadEstimate,
                         crowFliesMeters: crow,
                         targetPreferredKm: preferredLengthKm,
-                        routeMeters: route.distance
+                        routeMeters: route.distance,
+                        plannedDurationSeconds: m.plannedDurationSeconds,
+                        impliedAverageSpeedKmh: m.impliedAverageSpeedKmh,
+                        sharpTurnEstimateCount: m.sharpTurnEstimateCount,
+                        breakdownRows: m.breakdownRows,
+                        elevationGainMeters: nil,
+                        recommendationTag: nil
                     )
                 )
             }
@@ -450,6 +522,12 @@ enum MapKitRouteDirectionsBuilder {
                     crow: crow,
                     targetKm: preferredLengthKm
                 )
+                let m = routeDetailMetrics(
+                    coordinates: coords,
+                    breakdownRoutes: [route],
+                    routeMeters: route.distance,
+                    durationSeconds: route.expectedTravelTime
+                )
                 cards.append(
                     RouteCardModel(
                         id: UUID(),
@@ -463,7 +541,13 @@ enum MapKitRouteDirectionsBuilder {
                         transportKind: .walking,
                         crowFliesMeters: crow,
                         targetPreferredKm: preferredLengthKm,
-                        routeMeters: route.distance
+                        routeMeters: route.distance,
+                        plannedDurationSeconds: m.plannedDurationSeconds,
+                        impliedAverageSpeedKmh: m.impliedAverageSpeedKmh,
+                        sharpTurnEstimateCount: m.sharpTurnEstimateCount,
+                        breakdownRows: m.breakdownRows,
+                        elevationGainMeters: nil,
+                        recommendationTag: nil
                     )
                 )
             }
@@ -495,6 +579,12 @@ enum MapKitRouteDirectionsBuilder {
             if !coords.isEmpty {
                 let hasCycling = cards.contains(where: { $0.transportKind == .cycling })
                 if hasCycling {
+                    let m = routeDetailMetrics(
+                        coordinates: coords,
+                        breakdownRoutes: [route],
+                        routeMeters: route.distance,
+                        durationSeconds: route.expectedTravelTime
+                    )
                     cards.append(
                         RouteCardModel(
                             id: UUID(),
@@ -508,7 +598,13 @@ enum MapKitRouteDirectionsBuilder {
                             transportKind: .automobile,
                             crowFliesMeters: crow,
                             targetPreferredKm: preferredLengthKm,
-                            routeMeters: route.distance
+                            routeMeters: route.distance,
+                            plannedDurationSeconds: m.plannedDurationSeconds,
+                            impliedAverageSpeedKmh: m.impliedAverageSpeedKmh,
+                            sharpTurnEstimateCount: m.sharpTurnEstimateCount,
+                            breakdownRows: m.breakdownRows,
+                            elevationGainMeters: nil,
+                            recommendationTag: nil
                         )
                     )
                 }
@@ -694,6 +790,13 @@ enum MapKitRouteDirectionsBuilder {
                     dest: dest
                 )
 
+                let m = routeDetailMetrics(
+                    coordinates: merged,
+                    breakdownRoutes: [out.route, back.route],
+                    routeMeters: totalDist,
+                    durationSeconds: duration
+                )
+
                 index += 1
                 cards.append(
                     RouteCardModel(
@@ -707,8 +810,14 @@ enum MapKitRouteDirectionsBuilder {
                         coordinates: merged,
                         transportKind: badge,
                         crowFliesMeters: nil,
-                        targetPreferredKm: nil,
-                        routeMeters: totalDist
+                        targetPreferredKm: targetKm,
+                        routeMeters: totalDist,
+                        plannedDurationSeconds: m.plannedDurationSeconds,
+                        impliedAverageSpeedKmh: m.impliedAverageSpeedKmh,
+                        sharpTurnEstimateCount: m.sharpTurnEstimateCount,
+                        breakdownRows: m.breakdownRows,
+                        elevationGainMeters: nil,
+                        recommendationTag: index == 1 ? String(localized: "Best match") : nil
                     )
                 )
             }
@@ -732,6 +841,14 @@ enum MapKitRouteDirectionsBuilder {
                 let inC = coordinates(from: inCar.polyline)
                 if !outC.isEmpty, !inC.isEmpty {
                     let merged = mergeCoordinatesJoiningNearby(outC, inC)
+                    let totalCar = outCar.distance + inCar.distance
+                    let durCar = outCar.expectedTravelTime + inCar.expectedTravelTime
+                    let m = routeDetailMetrics(
+                        coordinates: merged,
+                        breakdownRoutes: [outCar, inCar],
+                        routeMeters: totalCar,
+                        durationSeconds: durCar
+                    )
                     cards.append(
                         RouteCardModel(
                             id: UUID(),
@@ -744,8 +861,14 @@ enum MapKitRouteDirectionsBuilder {
                             coordinates: merged,
                             transportKind: .automobile,
                             crowFliesMeters: nil,
-                            targetPreferredKm: nil,
-                            routeMeters: outCar.distance + inCar.distance
+                            targetPreferredKm: targetKm,
+                            routeMeters: totalCar,
+                            plannedDurationSeconds: m.plannedDurationSeconds,
+                            impliedAverageSpeedKmh: m.impliedAverageSpeedKmh,
+                            sharpTurnEstimateCount: m.sharpTurnEstimateCount,
+                            breakdownRows: m.breakdownRows,
+                            elevationGainMeters: nil,
+                            recommendationTag: nil
                         )
                     )
                 }
