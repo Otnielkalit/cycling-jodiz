@@ -1,0 +1,433 @@
+//
+//  HomeView.swift
+//  CyclingJodiz
+//
+
+import CoreLocation
+import MapKit
+import SwiftUI
+import WeatherKit
+
+struct HomeView: View {
+    private static let defaultMapCenter = CLLocationCoordinate2D(latitude: -6.2, longitude: 106.82)
+
+    @State private var path = NavigationPath()
+    @State private var locationManager = LocationManager()
+    @State private var weatherViewModel = HomeWeatherViewModel()
+    @State private var plannedRouteCamera: MapCameraPosition = .userLocation(fallback: .automatic)
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            homeScrollView
+                .navigationTitle("")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(.hidden, for: .navigationBar)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        CycleMapStylePickerMenu()
+                    }
+                }
+                .navigationDestination(for: RouteFlow.self) { step in
+                    switch step {
+                    case .hub:
+                        RouteSearchHubView(path: $path, locationManager: locationManager)
+                    case .pick(let context):
+                        RoutePickView(path: $path, context: context)
+                    case .activeRide(let config):
+                        ActiveRideView(path: $path, config: config, locationManager: locationManager)
+                    case .rideSummary(let payload):
+                        RideSummaryView(path: $path, payload: payload)
+                    }
+                }
+        }
+        .tint(Color.cycleAccent)
+        .onAppear {
+            locationManager.requestWhenInUseAuthorization()
+            locationManager.startUpdatingLocation()
+            weatherViewModel.refresh(for: locationManager.currentLocation)
+        }
+        .onChange(of: locationManager.currentLocation) { _, newValue in
+            weatherViewModel.refresh(for: newValue)
+        }
+    }
+
+    @ViewBuilder
+    private var homeScrollView: some View {
+        ScrollView {
+            homeMainColumn
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+                .padding(.bottom, 28)
+        }
+        .scrollContentBackground(.hidden)
+        .background(Color.cycleCanvasBackground)
+    }
+
+    @ViewBuilder
+    private var homeMainColumn: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            homeGreetingSection
+            HomePrimaryGenerateRouteCard {
+                path.append(RouteFlow.hub)
+            }
+            homeUpNextHeader
+            HomePlannedRouteCard(
+                cameraPosition: $plannedRouteCamera,
+                locationManager: locationManager,
+                onStartRide: {
+                    path.append(RouteFlow.activeRide(.demoRidgeLoop()))
+                }
+            )
+            homeLastRideHeader
+            HomeLastRideStatsRow()
+        }
+    }
+
+    @ViewBuilder
+    private var homeGreetingSection: some View {
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            HomeHeaderGreetingRow(
+                periodLabel: greetingPeriodLabel(at: context.date),
+                headline: greetingHeadline(at: context.date),
+                weatherViewModel: weatherViewModel
+            )
+        }
+    }
+
+    private var homeUpNextHeader: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(String(localized: "Up Next"))
+                .font(.headline.weight(.bold))
+                .foregroundStyle(Color.cyclePrimaryText)
+            Spacer()
+            Button(String(localized: "See All")) {
+                // TODO: planned routes list
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(Color.cycleAccent)
+        }
+    }
+
+    private var homeLastRideHeader: some View {
+        Text(String(localized: "Last Ride"))
+            .font(.headline.weight(.bold))
+            .foregroundStyle(Color.cyclePrimaryText)
+    }
+
+    private func greetingPeriodLabel(at date: Date) -> String {
+        let hour = Calendar.current.component(.hour, from: date)
+        switch hour {
+        case 5 ..< 12:
+            return String(localized: "Good morning")
+        case 12 ..< 17:
+            return String(localized: "Good afternoon")
+        case 17 ..< 22:
+            return String(localized: "Good evening")
+        default:
+            return String(localized: "Good night")
+        }
+    }
+
+    private func greetingHeadline(at _: Date) -> String {
+        String(localized: "Hey, ready to ride?")
+    }
+}
+
+// MARK: - Header (greeting + compact weather; cheer line below)
+
+private struct HomeHeaderGreetingRow: View {
+    let periodLabel: String
+    let headline: String
+    let weatherViewModel: HomeWeatherViewModel
+
+    private var cheerEnglish: String {
+        WeatherHomeCheerEnglish.line(
+            isLoading: weatherViewModel.isLoading,
+            symbolName: weatherViewModel.symbolName,
+            condition: weatherViewModel.weatherCondition
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(periodLabel)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.cycleSecondaryText)
+                        .textCase(.uppercase)
+                        .tracking(0.6)
+                    Text(headline)
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(Color.cyclePrimaryText)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                HomeWeatherHeaderCompact(viewModel: weatherViewModel)
+            }
+
+            Text(verbatim: cheerEnglish)
+                .font(.footnote)
+                .fontWeight(.regular)
+                .foregroundStyle(Color.cycleSecondaryText.opacity(0.88))
+                .multilineTextAlignment(.leading)
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Hanya **ikon + suhu** — ringan; copy semangat ada di luar (di atas `HomeHeaderGreetingRow`).
+private struct HomeWeatherHeaderCompact: View {
+    let viewModel: HomeWeatherViewModel
+
+    var body: some View {
+        HStack(spacing: 8) {
+            WeatherHeaderIconOrb(
+                symbolName: viewModel.symbolName,
+                condition: viewModel.weatherCondition,
+                isLoading: viewModel.isLoading,
+                diameter: 52,
+                animated: false
+            )
+
+            Text(viewModel.temperatureText)
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundStyle(viewModel.palette.temperatureTint)
+                .minimumScaleFactor(0.8)
+                .lineLimit(1)
+                .contentTransition(.numericText())
+        }
+        .padding(.leading, 6)
+        .padding(.trailing, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color.cycleBorder.opacity(0.22))
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(Color.cycleBorder.opacity(0.45), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            String(localized: "Weather") + ", " + viewModel.temperatureText
+        )
+    }
+}
+
+// MARK: - Primary generate route (main product action)
+
+private struct HomePrimaryGenerateRouteCard: View {
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.cycleAccent.opacity(0.14))
+                            .frame(width: 48, height: 48)
+                        Image(systemName: "point.topleft.down.curvedto.point.bottomright.fill")
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(Color.cycleAccent)
+                    }
+                    .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(String(localized: "Plan Your Journey"))
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(Color.cyclePrimaryText)
+                            .multilineTextAlignment(.leading)
+                        Text(
+                            String(
+                                localized: "Loop or A to B—pick style, place, and distance. Let AI carve the perfect path for your performance."
+                            )
+                        )
+                        .font(.subheadline)
+                        .foregroundStyle(Color.cycleSecondaryText)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                HStack {
+                    Text(String(localized: "Generate Route"))
+                        .font(.headline.weight(.semibold))
+                    Spacer()
+                    Image(systemName: "arrow.right")
+                        .font(.headline.weight(.bold))
+                }
+                .foregroundStyle(Color.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                .frame(maxWidth: .infinity)
+                .background(Color.cycleAccent)
+                .clipShape(Capsule())
+            }
+            .padding(20)
+            .background(Color.cycleCardSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(Color.cycleBorder.opacity(0.45), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.07), radius: 16, x: 0, y: 8)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(String(localized: "Generate Route"))
+        .accessibilityHint(String(localized: "Opens route planning."))
+    }
+}
+
+// MARK: - Planned route (Up Next)
+
+private struct HomePlannedRouteCard: View {
+    /// Demo polyline so the map reads like the mockup (blue path).
+    private static let previewRouteCoordinates: [CLLocationCoordinate2D] = [
+        CLLocationCoordinate2D(latitude: -6.198, longitude: 106.805),
+        CLLocationCoordinate2D(latitude: -6.208, longitude: 106.818),
+        CLLocationCoordinate2D(latitude: -6.218, longitude: 106.808),
+        CLLocationCoordinate2D(latitude: -6.210, longitude: 106.798)
+    ]
+
+    private static let mapPreviewHeight: CGFloat = 156
+
+    @AppStorage(CycleMapDisplayStyle.storageKey) private var mapStyleRaw: String = CycleMapDisplayStyle.standard.rawValue
+    @Binding var cameraPosition: MapCameraPosition
+    var locationManager: LocationManager
+    var onStartRide: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                Map(position: $cameraPosition) {
+                    UserAnnotation {
+                        CycleLiveTrackUserAnnotation(location: locationManager.currentLocation)
+                    }
+                    MapPolyline(coordinates: Self.previewRouteCoordinates)
+                        .stroke(Color(red: 0.2, green: 0.55, blue: 1.0), lineWidth: 4)
+                }
+                .mapStyle(CycleMapDisplayStyle.resolved(from: mapStyleRaw).toMapStyle())
+                .frame(height: Self.mapPreviewHeight)
+                .allowsHitTesting(false)
+                .environment(\.colorScheme, .dark)
+
+                Text(String(localized: "VERIFIED ROUTE"))
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.cycleAccent)
+                    .clipShape(Capsule())
+                    .padding(.leading, 12)
+                    .padding(.top, 10)
+            }
+            .allowsHitTesting(false)
+
+            HStack(alignment: .center, spacing: 14) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(String(localized: "Ridge Loop"))
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(Color.cyclePrimaryText)
+
+                    HStack(spacing: 18) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "mappin.and.ellipse")
+                                .imageScale(.small)
+                            Text(String(localized: "24 km"))
+                        }
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock")
+                            Text(String(localized: "55 min"))
+                        }
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.cycleSecondaryText)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button(action: onStartRide) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Color.cyclePrimaryText)
+                        .frame(width: 50, height: 50)
+                        .background(Color(red: 235 / 255, green: 235 / 255, blue: 237 / 255))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "Start ride"))
+            }
+            .padding(16)
+            .background(Color.cycleCardSurface)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.cycleBorder.opacity(0.55), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 4)
+    }
+}
+
+// MARK: - Last ride stats
+
+private struct HomeLastRideStatsRow: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            HomeStatMiniCard(
+                title: String(localized: "AVG SPEED"),
+                valuePrimary: "32.4",
+                valueSuffix: String(localized: " km/h"),
+                accentPrimary: true
+            )
+            HomeStatMiniCard(
+                title: String(localized: "TIME"),
+                valuePrimary: "48",
+                valueSuffix: String(localized: " min"),
+                accentPrimary: false
+            )
+        }
+    }
+}
+
+private struct HomeStatMiniCard: View {
+    let title: String
+    let valuePrimary: String
+    let valueSuffix: String
+    var accentPrimary: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(Color.cycleSecondaryText)
+                .textCase(.uppercase)
+                .tracking(0.4)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(valuePrimary)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(accentPrimary ? Color.cycleAccent : Color.cyclePrimaryText)
+                Text(valueSuffix)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.cyclePrimaryText)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(Color.cycleBorder.opacity(0.28))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.cycleBorder.opacity(0.4), lineWidth: 1)
+        )
+    }
+}
+
+#Preview {
+    HomeView()
+}
