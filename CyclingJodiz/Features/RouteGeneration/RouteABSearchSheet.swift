@@ -1,13 +1,7 @@
-//
-//  RouteABSearchSheet.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import MapKit
 import SwiftUI
 
-/// Modal ala Gojek/Grab: titik jemput + tujuan bertumpuk, jarak, saran MapKit di bawah.
 struct RouteABSearchSheet: View {
     @Bindable var form: RouteHubFormModel
     @Binding var isPresented: Bool
@@ -25,19 +19,19 @@ struct RouteABSearchSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    gojekStackedInputsCard
+                VStack(alignment: .leading, spacing: 16) {
+                    routeEndpointsCard
                     distanceSection
                     completionsList
                     findRoutesSection
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 4)
+                .padding(.top, 6)
                 .padding(.bottom, 20)
             }
             .scrollDismissesKeyboard(.interactively)
             .background(Color.cycleCanvasBackground)
-            .navigationTitle(String(localized: "Set pickup & destination"))
+            .navigationTitle(String(localized: "Point-to-point"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .tabBar)
             .toolbar {
@@ -81,34 +75,40 @@ struct RouteABSearchSheet: View {
         }
     }
 
-    private var gojekStackedInputsCard: some View {
+    private var routeEndpointsCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: 10) {
-                gojekIconColumn
+            HStack(alignment: .top, spacing: 12) {
+                routeEndpointIconColumn
                 VStack(spacing: 0) {
                     startFieldRow
-                    Divider().padding(.leading, 0)
+                    Divider()
+                        .padding(.leading, 2)
+                        .opacity(0.55)
                     endFieldRow
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
         }
         .background(Color.cycleCardSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 3)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.cycleBorder.opacity(0.5), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 4)
     }
 
-    private var gojekIconColumn: some View {
+    private var routeEndpointIconColumn: some View {
         VStack(spacing: 0) {
-            pickupPin
+            startPin
             dashedConnector
-            destinationPin
+            endPin
         }
         .frame(width: 26)
     }
 
-    private var pickupPin: some View {
+    private var startPin: some View {
         ZStack {
             Circle()
                 .fill(Color.cycleSuccess)
@@ -120,7 +120,7 @@ struct RouteABSearchSheet: View {
         .accessibilityHidden(true)
     }
 
-    private var destinationPin: some View {
+    private var endPin: some View {
         ZStack {
             Circle()
                 .strokeBorder(Color.cycleAccent, lineWidth: 4)
@@ -146,19 +146,25 @@ struct RouteABSearchSheet: View {
 
     private var startFieldRow: some View {
         HStack(spacing: 8) {
-            TextField(String(localized: "Pickup location"), text: $form.startQuery)
-                .focused($focusedField, equals: .start)
-                .textInputAutocapitalization(.words)
-                .submitLabel(.search)
-                .foregroundStyle(Color.cyclePrimaryText)
-                .tint(Color.cycleAccent)
-                .font(.subheadline)
-                .onChange(of: form.startQuery) { _, _ in
-                    guard focusedField == .start else { return }
-                    form.setActiveSlot(.start)
-                    form.scheduleCompleterQueryUpdate()
-                }
-                .onSubmit { form.scheduleCompleterQueryUpdate() }
+            TextField(
+                "",
+                text: $form.startQuery,
+                prompt: Text(String(localized: "Start from…"))
+                    .font(.subheadline)
+                    .foregroundStyle(Color.cycleSecondaryText)
+            )
+            .focused($focusedField, equals: .start)
+            .textInputAutocapitalization(.words)
+            .submitLabel(.search)
+            .font(.subheadline)
+            .foregroundStyle(Color.cyclePrimaryText)
+            .tint(Color.cycleAccent)
+            .onChange(of: form.startQuery) { _, _ in
+                guard focusedField == .start else { return }
+                form.setActiveSlot(.start)
+                form.scheduleCompleterQueryUpdate()
+            }
+            .onSubmit { form.scheduleCompleterQueryUpdate() }
 
             yourLocationButton(slot: .start)
         }
@@ -166,22 +172,27 @@ struct RouteABSearchSheet: View {
     }
 
     private var endFieldRow: some View {
-        HStack(spacing: 8) {
-            TextField(String(localized: "Destination"), text: $form.endQuery)
-                .focused($focusedField, equals: .end)
-                .textInputAutocapitalization(.words)
-                .submitLabel(.search)
-                .foregroundStyle(Color.cyclePrimaryText)
-                .tint(Color.cycleAccent)
-                .font(.subheadline)
-                .onChange(of: form.endQuery) { _, _ in
-                    guard focusedField == .end else { return }
-                    form.setActiveSlot(.end)
-                    form.scheduleCompleterQueryUpdate()
-                }
-                .onSubmit { form.scheduleCompleterQueryUpdate() }
-
-            yourLocationButton(slot: .end)
+        HStack(spacing: 0) {
+            TextField(
+                "",
+                text: $form.endQuery,
+                prompt: Text(String(localized: "Finish at…"))
+                    .font(.subheadline)
+                    .foregroundStyle(Color.cycleSecondaryText)
+            )
+            .focused($focusedField, equals: .end)
+            .textInputAutocapitalization(.words)
+            .submitLabel(.search)
+            .font(.subheadline)
+            .foregroundStyle(Color.cyclePrimaryText)
+            .tint(Color.cycleAccent)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .onChange(of: form.endQuery) { _, _ in
+                guard focusedField == .end else { return }
+                form.setActiveSlot(.end)
+                form.scheduleCompleterQueryUpdate()
+            }
+            .onSubmit { form.scheduleCompleterQueryUpdate() }
         }
         .padding(.vertical, 6)
     }
@@ -201,42 +212,73 @@ struct RouteABSearchSheet: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(String(localized: "Your location"))
+        .accessibilityLabel(String(localized: "Use current location as start"))
     }
 
+    private static let quickDistanceKmValues: [Int] = [10, 15, 20, 25, 30, 40, 50]
+
     private var distanceSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(String(localized: "Target distance (km)"))
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(Color.cycleSecondaryText)
-
-            TextField(String(localized: "e.g. 20"), text: $form.distanceKmText)
-                .focused($focusedField, equals: .distance)
-                .keyboardType(.decimalPad)
-                .font(.subheadline)
+        VStack(alignment: .leading, spacing: 12) {
+            Text(String(localized: "Target distance"))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.cyclePrimaryText)
-                .tint(Color.cycleAccent)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color.cycleCardSurface)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.cycleBorder, lineWidth: 1)
-                )
 
-            Text(
-                String(
-                    localized: "This is a rough ride length you’d like — Maps won’t match it exactly. Start and end stay fixed; we may suggest a longer detour if you want much more distance than the shortest path."
-                )
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Self.quickDistanceKmValues, id: \.self) { km in
+                        distanceQuickChip(km: km)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+
+            HStack(spacing: 10) {
+                TextField(String(localized: "Custom"), text: $form.distanceKmText)
+                    .focused($focusedField, equals: .distance)
+                    .keyboardType(.decimalPad)
+                    .font(.system(.title3, design: .rounded).weight(.semibold))
+                    .foregroundStyle(Color.cyclePrimaryText)
+                    .tint(Color.cycleAccent)
+                    .multilineTextAlignment(.leading)
+
+                Text(String(localized: "km"))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.cycleSecondaryText)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.cycleBorder.opacity(0.35))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(Color.cycleCardSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.cycleBorder.opacity(0.55), lineWidth: 1)
             )
-            .font(.caption2)
-            .foregroundStyle(Color.cycleSecondaryText)
-            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    /// Saran MapKit disembunyikan setelah pickup & destination sudah ter-resolve (hemat ruang saat keyboard terbuka).
+    private func distanceQuickChip(km: Int) -> some View {
+        let matches = form.parsedDistanceKm.map { abs($0 - Double(km)) < 0.001 } ?? false
+        return Button {
+            form.distanceKmText = "\(km)"
+            focusedField = nil
+        } label: {
+            Text("\(km)")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(matches ? Color.white : Color.cyclePrimaryText)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(matches ? Color.cycleAccent : Color.cycleBorder.opacity(0.32))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(km) \(String(localized: "km"))")
+    }
+
+    
     private var shouldShowMapSuggestions: Bool {
         !(form.startItem != nil && form.endItem != nil)
     }
@@ -245,7 +287,7 @@ struct RouteABSearchSheet: View {
         Group {
             if shouldShowMapSuggestions, !form.completions.isEmpty, focusedField != .distance {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(String(localized: "Map suggestions"))
+                    Text(String(localized: "Places"))
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(Color.cycleSecondaryText)
                         .padding(.bottom, 4)

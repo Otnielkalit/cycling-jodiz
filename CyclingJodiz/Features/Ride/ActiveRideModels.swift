@@ -1,16 +1,10 @@
-//
-//  ActiveRideModels.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import Foundation
 
-/// Konfigurasi ride aktif (dari kartu rute terpilih + konteks hub).
-struct ActiveRideConfig: Hashable {
+struct ActiveRideConfig: Hashable, Codable {
     let routeTitle: String
     let coordinates: [MapCoordinate]
-    /// Panjang polyline di jalan (meter) — dipakai untuk sisa jarak perkiraan.
+    
     let totalRouteMeters: Double
     let pickContext: RoutePickContext
 
@@ -35,7 +29,7 @@ struct ActiveRideConfig: Hashable {
         )
     }
 
-    /// Demo “Ridge Loop” dari Home (tanpa konteks hub).
+    
     static func demoRidgeLoop() -> ActiveRideConfig {
         let coords: [CLLocationCoordinate2D] = [
             CLLocationCoordinate2D(latitude: -6.198, longitude: 106.805),
@@ -53,7 +47,6 @@ struct ActiveRideConfig: Hashable {
     }
 }
 
-/// Ringkasan setelah **End ride** (Screen 5 README).
 struct RideSummaryPayload: Hashable {
     let startedAt: Date
     let endedAt: Date

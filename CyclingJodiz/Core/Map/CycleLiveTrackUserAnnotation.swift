@@ -1,14 +1,8 @@
-//
-//  CycleLiveTrackUserAnnotation.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import SwiftUI
 
-/// Isi `UserAnnotation { … }` — ikon live track: aset **`LiveTrackUserPuck`** (PNG *Marker Container*), diputar mengikuti `course` bila valid.
 struct CycleLiveTrackUserAnnotation: View {
-    /// Derajat dari utara searah jarum jam (`CLLocation.course`). Nil atau nilai negatif berarti course tidak tersedia (tetap 0°).
+    
     var courseDegrees: CLLocationDirection?
 
     private static let assetName = "LiveTrackUserPuck"
@@ -34,7 +28,7 @@ struct CycleLiveTrackUserAnnotation: View {
 }
 
 extension CycleLiveTrackUserAnnotation {
-    /// Pakai `CLLocation.course` bila tersedia (biasanya saat bergerak).
+    
     init(location: CLLocation?) {
         self.init(courseDegrees: Self.validCourse(from: location))
     }

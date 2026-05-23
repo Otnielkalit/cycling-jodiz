@@ -1,12 +1,6 @@
-//
-//  WeatherCardPalette.swift
-//  CyclingJodiz
-//
-
 import SwiftUI
 import WeatherKit
 
-/// Home weather card mood → colors from `WeatherHueWheel` (HSB segments on one wheel).
 enum WeatherCardPalette: Equatable {
     case fair
     case clearSky
@@ -26,7 +20,7 @@ enum WeatherCardPalette: Equatable {
 }
 
 extension WeatherCardPalette {
-    /// Picks a palette from Apple’s condition (subjective “good for cycling” grouping).
+    
     static func palettePreferFair(for condition: WeatherCondition) -> WeatherCardPalette {
         switch condition {
         case .clear, .partlyCloudy:
@@ -50,7 +44,7 @@ extension WeatherCardPalette {
 }
 
 extension WeatherCondition {
-    /// Short rider-friendly line for the home card (localized keys in String Catalog later).
+    
     func cyclingSummarySentence() -> String {
         switch self {
         case .clear, .mostlyClear:

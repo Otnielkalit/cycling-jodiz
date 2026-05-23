@@ -1,12 +1,6 @@
-//
-//  RideSummaryView.swift
-//  CyclingJodiz
-//
-
 import MapKit
 import SwiftUI
 
-/// Screen 5 README: ringkasan ride, thumbnail peta, Save / Discard.
 struct RideSummaryView: View {
     @Binding var path: NavigationPath
     let payload: RideSummaryPayload

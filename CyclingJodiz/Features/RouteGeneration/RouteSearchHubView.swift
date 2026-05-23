@@ -1,13 +1,7 @@
-//
-//  RouteSearchHubView.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import MapKit
 import SwiftUI
 
-/// Hub rute: hero + **kartu putih menimpa hero** (Gojek). Hanya UI; skenario → sheet Loop / A→B.
 struct RouteSearchHubView: View {
     @Binding var path: NavigationPath
     @Bindable var locationManager: LocationManager
@@ -20,13 +14,13 @@ struct RouteSearchHubView: View {
 
     private static let fallbackMapCenter = CLLocationCoordinate2D(latitude: -6.2, longitude: 106.82)
 
-    // MARK: - Layout (satu sumber kebenaran)
+    
 
-    /// Tinggi hero (ilustrasi) di bawah bar navigasi.
+    
     private static let heroContentHeight: CGFloat = 258
-    /// Berapa piksel kartu putih “naik” menindih bagian bawah hero (semakin besar = semakin Gojek).
+    
     private static let cardOverlapIntoHero: CGFloat = 118
-    /// Map di dalam kartu — sedikit lebih rendah supaya proporsi lebih ringan.
+    
     private static let mapInnerHeight: CGFloat = 188
     private static let outerHorizontalPadding: CGFloat = 16
     private static let cardCornerRadius: CGFloat = 22

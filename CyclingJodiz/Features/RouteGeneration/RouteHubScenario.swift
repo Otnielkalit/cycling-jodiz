@@ -1,8 +1,3 @@
-//
-//  RouteHubScenario.swift
-//  CyclingJodiz
-//
-
 import Foundation
 
 enum RouteHubScenario: String, CaseIterable, Identifiable {

@@ -1,13 +1,8 @@
-//
-//  RoutePolylineSamples.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import MapKit
 
 enum RoutePolylineSamples {
-    /// Three decorative loops around `center` for map preview (not real routing yet).
+    
     static func coordinates(center: CLLocationCoordinate2D, index: Int, pointCount: Int = 24) -> [CLLocationCoordinate2D] {
         let baseRadiusDegrees = 0.004 + Double(index) * 0.0008
         let phase = Double(index) * (.pi / 3)

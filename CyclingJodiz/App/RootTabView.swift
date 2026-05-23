@@ -1,8 +1,3 @@
-//
-//  RootTabView.swift
-//  CyclingJodiz
-//
-
 import SwiftUI
 
 enum AppTab: Hashable {

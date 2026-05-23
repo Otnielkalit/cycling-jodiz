@@ -1,8 +1,3 @@
-//
-//  SettingsView.swift
-//  CyclingJodiz
-//
-
 import SwiftUI
 
 struct SettingsView: View {

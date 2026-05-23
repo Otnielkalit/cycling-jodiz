@@ -1,19 +1,13 @@
-//
-//  RouteHubFormModel.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import MapKit
 import Observation
 
-/// Form hub: skenario, teks pencarian MapKit (`MKLocalSearchCompleter`), resolve ke `MKMapItem`, jarak, “Lokasi Anda”.
 @MainActor
 @Observable
 final class RouteHubFormModel: NSObject {
     var scenario: RouteHubScenario?
 
-    /// Slot yang sedang mengisi `MKLocalSearchCompleter.queryFragment`.
+    
     enum SearchSlot: Hashable {
         case loopCenter
         case start
@@ -25,10 +19,10 @@ final class RouteHubFormModel: NSObject {
     var loopLocationQuery = ""
     var startQuery = ""
     var endQuery = ""
-    /// Target jarak (km) — dipakai untuk loop & preferensi panjang ride untuk A→B (perkiraan; titik A/B tetap).
+    
     var distanceKmText = "20"
 
-    /// `distanceKmText` sebagai angka; `nil` jika bukan angka positif.
+    
     var parsedDistanceKm: Double? {
         let raw = distanceKmText.replacingOccurrences(of: ",", with: ".")
         guard let v = Double(raw), v > 0 else { return nil }
@@ -134,7 +128,7 @@ final class RouteHubFormModel: NSObject {
         }
     }
 
-    /// Isi slot aktif dengan reverse geocode lokasi GPS (Grab/Gojek-style “Lokasi Anda”).
+    
     func applyYourLocation(slot: SearchSlot, location: CLLocation?) async {
         guard let coordinate = location?.coordinate else { return }
         activeSearchSlot = slot

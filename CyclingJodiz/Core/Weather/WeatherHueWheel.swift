@@ -1,26 +1,19 @@
-//
-//  WeatherHueWheel.swift
-//  CyclingJodiz
-//
-
 import SwiftUI
 
-/// HSB-based fills for the home weather card. Each mood = **satu segmen hue** di roda (0…1);
-/// latar = saturasi rendah + brightness tinggi; suhu = **hue sama** dengan kroma lebih tinggi (harmoni analog).
 enum WeatherHueWheel {
-    // MARK: Hue anchors (SwiftUI `Color(hue:)` — 0 = merah, putaran penuh = 1)
+    
 
-    /// ~24° — selaras aksen app / “hari enak”.
+    
     private static let orange: Double = 24 / 360
-    /// ~208° — langit / sejuk.
+    
     private static let azure: Double = 208 / 360
-    /// ~265° — awan (violet lembut, analog dengan biru).
+    
     private static let violet: Double = 265 / 360
-    /// ~188° — air / hujan (teal).
+    
     private static let teal: Double = 188 / 360
-    /// ~38° — peringatan (amber, kontras harmonis dengan segmen teal).
+    
     private static let amber: Double = 38 / 360
-    /// ~8° — panas (merah–oranye).
+    
     private static let scarlet: Double = 8 / 360
 
     static func cardBackground(for mood: WeatherCardPalette) -> Color {

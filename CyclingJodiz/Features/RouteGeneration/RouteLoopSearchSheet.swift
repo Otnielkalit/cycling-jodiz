@@ -1,13 +1,7 @@
-//
-//  RouteLoopSearchSheet.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import MapKit
 import SwiftUI
 
-/// Modal untuk skenario **Loop**: titik pusat + jarak + saran MapKit (alur sama seperti rencana awal, terpisah dari hub).
 struct RouteLoopSearchSheet: View {
     @Bindable var form: RouteHubFormModel
     @Binding var isPresented: Bool

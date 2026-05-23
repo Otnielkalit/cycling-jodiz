@@ -1,8 +1,3 @@
-//
-//  RouteCardModel.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import SwiftUI
 
@@ -14,38 +9,38 @@ struct RouteCardModel: Identifiable {
     let timeLabel: String
     let isRecommended: Bool
     let lineColor: Color
-    /// Polyline untuk `MapPolyline` — dari `MKRoute.polyline`.
+    
     let coordinates: [CLLocationCoordinate2D]
     let transportKind: RouteTransportKind
-    /// Garis lurus A→B (meter); hanya diisi untuk konteks hub A→B.
+    
     let crowFliesMeters: CLLocationDistance?
-    /// Target panjang dari form (km); perkiraan, bukan syarat persis.
+    
     let targetPreferredKm: Double?
-    /// Panjang rute di jalan (MapKit / jumlah kaki); untuk rekomendasi & teks bantuan.
+    
     let routeMeters: CLLocationDistance
-    /// Durasi rencana (detik) — ETA MapKit cycling/walking, atau perkiraan sepeda untuk jalur mobil.
+    
     let plannedDurationSeconds: TimeInterval
-    /// Kecepatan rata-rata implisit rencana (km/j) = jarak / waktu.
+    
     let impliedAverageSpeedKmh: Double
-    /// Perkiraan belokan tajam dari polyline (bukan hitungan persimpangan GIS).
+    
     let sharpTurnEstimateCount: Int
-    /// Langkah turn-by-turn ringkas dari `MKRoute.steps` (boleh kosong).
+    
     let breakdownRows: [RouteBreakdownRow]
-    /// Naik turun; `nil` bila tidak ada sumber data.
+    
     let elevationGainMeters: Double?
-    /// Chip singkat saat kartu direkomendasikan (mis. “Best match”).
+    
     let recommendationTag: String?
 
     enum RouteTransportKind: Hashable {
         case cycling
-        /// Jalur jalan kaki dari MapKit bila cycling tidak tersedia di wilayah ini.
+        
         case walking
         case automobile
-        /// Garis dari arah **mobil** di Maps, ditampilkan untuk pesepeda dengan **ETA perkiraan** kecepatan sepeda.
+        
         case cyclingRoadEstimate
     }
 
-    /// Salin kartu dengan flag rekomendasi baru (dipakai builder setelah membandingkan jarak vs target).
+    
     func settingRecommended(_ value: Bool, recommendationTag: String?) -> RouteCardModel {
         RouteCardModel(
             id: id,
@@ -71,7 +66,7 @@ struct RouteCardModel: Identifiable {
 }
 
 extension RouteCardModel {
-    /// Placeholder untuk preview / fallback UI.
+    
     static func mockRoutes(center: CLLocationCoordinate2D) -> [RouteCardModel] {
         let coords0 = RoutePolylineSamples.coordinates(center: center, index: 0)
         let coords1 = RoutePolylineSamples.coordinates(center: center, index: 1)

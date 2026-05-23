@@ -1,12 +1,6 @@
-//
-//  LocationManager.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import Observation
 
-/// Owns `CLLocationManager` and mirrors authorization for SwiftUI.
 @MainActor
 @Observable
 final class LocationManager: NSObject {

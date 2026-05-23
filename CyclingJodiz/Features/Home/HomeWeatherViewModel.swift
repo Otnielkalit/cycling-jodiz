@@ -1,8 +1,3 @@
-//
-//  HomeWeatherViewModel.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import Foundation
 import Observation
@@ -14,7 +9,7 @@ final class HomeWeatherViewModel {
     private(set) var temperatureText: String = "—"
     private(set) var summaryText: String = String(localized: "Waiting for location…")
     private(set) var symbolName: String = "location.circle"
-    /// Untuk memilih animasi SF Symbol yang cocok dengan kondisi (hujan / petir / cerah).
+    
     private(set) var weatherCondition: WeatherCondition?
     private(set) var palette: WeatherCardPalette = .neutral
     private(set) var isLoading: Bool = false
@@ -109,7 +104,7 @@ final class HomeWeatherViewModel {
         #endif
     }
 
-    /// `WeatherDaemon…WDSJWTAuthenticator… error 2` — JWT for WeatherKit wasn’t issued for this signed build.
+    
     private static func isWeatherKitJWTAuthenticatorError(_ ns: NSError) -> Bool {
         ns.domain.contains("WDSJWTAuthenticator") && ns.code == 2
     }

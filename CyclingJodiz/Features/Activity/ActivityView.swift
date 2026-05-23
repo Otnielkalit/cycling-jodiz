@@ -1,8 +1,3 @@
-//
-//  ActivityView.swift
-//  CyclingJodiz
-//
-
 import SwiftUI
 
 struct ActivityView: View {

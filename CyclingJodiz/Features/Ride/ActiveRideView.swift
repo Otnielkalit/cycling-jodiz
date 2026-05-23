@@ -1,14 +1,8 @@
-//
-//  ActiveRideView.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import MapKit
 import Observation
 import SwiftUI
 
-/// Screen 4 README: peta immersive, kartu maneuver, HUD stats, **End ride**.
 struct ActiveRideView: View {
     @Binding var path: NavigationPath
     let config: ActiveRideConfig
@@ -26,7 +20,7 @@ struct ActiveRideView: View {
     }
 
     var body: some View {
-        /// Peta full screen; kartu `overlay` = tinggi intrinsik saja (referensi `active_navigation_light`).
+        
         Map(position: $cameraPosition) {
             MapPolyline(coordinates: coordCL)
                 .stroke(Color.cycleAccent, style: polylineStrokeStyle)
@@ -94,7 +88,7 @@ struct ActiveRideView: View {
         }
     }
 
-    /// Atas: pill seperti `active_navigation_light` (ikon + instruksi, tidak full-width tebal).
+    
     private var turnInstructionPill: some View {
         HStack(alignment: .center, spacing: 14) {
             ZStack {
@@ -125,7 +119,7 @@ struct ActiveRideView: View {
         .frame(maxWidth: 400)
     }
 
-    /// Bawah: kartu putih **tinggi intrinsik** saja — grid 3 kolom + End Ride (`active_navigation_light`).
+    
     private var bottomHudLightDesign: some View {
         VStack(spacing: 20) {
             TimelineView(.periodic(from: .now, by: 1)) { timeline in
@@ -175,7 +169,7 @@ struct ActiveRideView: View {
                 .strokeBorder(Color.cycleBorder, lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 10)
-        /// Cegah penyerapan ruang vertikal tak terbatas (bug pola `safeAreaInset` + material).
+        
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity)
     }

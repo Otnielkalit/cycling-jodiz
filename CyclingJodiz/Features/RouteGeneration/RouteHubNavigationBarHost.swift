@@ -1,11 +1,3 @@
-//
-//  RouteHubNavigationBarHost.swift
-//  CyclingJodiz
-//
-//  SwiftUI `toolbarBackground(.hidden)` kadang masih meninggalkan material abu-abu.
-//  Host ini menyetel `UINavigationBarAppearance` benar-benar transparan saat hub tampil,
-//  dan mengembalikan tampilan semula hanya saat layar ini **popped** (bukan saat sheet dibuka).
-
 import SwiftUI
 import UIKit
 
@@ -76,7 +68,6 @@ final class RouteHubNavigationBarController: UIViewController {
     }
 }
 
-/// Sisipkan sebagai `.background(RouteHubNavigationBarHost())` pada root `RouteSearchHubView`.
 struct RouteHubNavigationBarHost: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> RouteHubNavigationBarController {
         let c = RouteHubNavigationBarController()

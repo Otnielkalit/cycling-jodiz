@@ -1,13 +1,7 @@
-//
-//  RoutePickContext.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import Foundation
 
-/// Koordinat yang aman untuk `Hashable` / `NavigationPath`.
-struct MapCoordinate: Hashable, Sendable {
+struct MapCoordinate: Hashable, Sendable, Codable {
     var latitude: Double
     var longitude: Double
 
@@ -21,10 +15,9 @@ struct MapCoordinate: Hashable, Sendable {
     }
 }
 
-/// Data yang sudah diset di hub / sheet → dipakai untuk minta rute ke MapKit.
-enum RoutePickContext: Hashable, Sendable {
-    /// A→B: titik jemput & tujuan tetap sama; **preferredLengthKm** = panjang ride yang diinginkan (perkiraan, boleh ± sedikit).
+enum RoutePickContext: Hashable, Sendable, Codable {
+    
     case pointToPoint(start: MapCoordinate, end: MapCoordinate, preferredLengthKm: Double)
-    /// Pusat loop + target km: round trip disesuaikan ke target; cycling → **mobil** (bukan jalan kaki) + ETA perkiraan sepeda + heuristik jalan.
+    
     case loop(center: MapCoordinate, targetKm: Double)
 }

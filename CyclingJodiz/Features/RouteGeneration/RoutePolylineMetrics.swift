@@ -1,25 +1,18 @@
-//
-//  RoutePolylineMetrics.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import Foundation
 import MapKit
 
-/// Satu baris “route breakdown” dari langkah Maps.
 struct RouteBreakdownRow: Hashable, Sendable {
     var title: String
     var distanceMeters: CLLocationDistance
     var symbolName: String
 }
 
-/// Heuristik dari polyline / langkah MapKit (bukan data GIS resmi).
 enum RoutePolylineMetrics {
 
-    // MARK: - Sharp bends (proxy “persimpangan / belokan tajam”)
+    
 
-    /// Menghitung **perkiraan** titik belok tajam: selisih bearing antarsegmen memadai, segmen cukup panjang, titik dekat digabung.
+    
     static func sharpTurnEstimateCount(
         coordinates: [CLLocationCoordinate2D],
         minSegmentLengthMeters: CLLocationDistance = 12,
@@ -82,7 +75,7 @@ enum RoutePolylineMetrics {
         return d
     }
 
-    // MARK: - Breakdown dari MKRoute
+    
 
     static func breakdownRows(from routes: [MKRoute], maxRows: Int = 8) -> [RouteBreakdownRow] {
         var rows: [RouteBreakdownRow] = []

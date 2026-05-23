@@ -1,12 +1,6 @@
-//
-//  CycleMapDisplayStyle.swift
-//  CyclingJodiz
-//
-
 import MapKit
 import SwiftUI
 
-/// Gaya tampilan `Map` yang dipakai bersama di app (tersimpan di `UserDefaults` via `@AppStorage`).
 enum CycleMapDisplayStyle: String, CaseIterable, Identifiable {
     case standard
     case hybrid
@@ -54,10 +48,9 @@ enum CycleMapDisplayStyle: String, CaseIterable, Identifiable {
     }
 }
 
-/// Menu toolbar: ganti gaya peta (Standard / Hybrid / Satellite).
 struct CycleMapStylePickerMenu: View {
     @AppStorage(CycleMapDisplayStyle.storageKey) private var mapStyleRaw: String = CycleMapDisplayStyle.standard.rawValue
-    /// Untuk bar navigasi gelap (mis. hub rute) supaya ikon tetap terbaca.
+    
     var lightContent: Bool = false
 
     var body: some View {

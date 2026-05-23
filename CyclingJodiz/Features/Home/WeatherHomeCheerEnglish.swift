@@ -1,12 +1,6 @@
-//
-//  WeatherHomeCheerEnglish.swift
-//  CyclingJodiz
-//
-
 import Foundation
 import WeatherKit
 
-/// English-only upbeat one-liners for the home weather header (product copy).
 enum WeatherHomeCheerEnglish {
     static func line(
         isLoading: Bool,

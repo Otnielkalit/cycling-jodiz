@@ -1,8 +1,3 @@
-//
-//  RoutePickView.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import MapKit
 import SwiftUI
@@ -19,10 +14,12 @@ struct RoutePickView: View {
     @State private var cameraPosition: MapCameraPosition
     @State private var isLoading = true
     @State private var loadError: String?
+    @State private var showSaveForLaterSheet = false
+    @State private var plannedStartDate = Date().addingTimeInterval(7200)
+    @State private var showRouteSavedConfirmation = false
 
-    private var mapMaxHeight: CGFloat {
-        expandedRouteId == nil ? 260 : 150
-    }
+    
+    private let mapPreferredMaxHeight: CGFloat = 260
 
     init(path: Binding<NavigationPath>, context: RoutePickContext) {
         _path = path
@@ -33,8 +30,7 @@ struct RoutePickView: View {
     var body: some View {
         VStack(spacing: 0) {
             mapSection
-                .frame(maxHeight: mapMaxHeight)
-                .animation(.easeInOut(duration: 0.28), value: expandedRouteId)
+                .frame(maxHeight: mapPreferredMaxHeight)
 
             if let loadError {
                 Text(loadError)
@@ -61,7 +57,7 @@ struct RoutePickView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
-                .padding(.bottom, 12)
+                .padding(.bottom, 20)
             }
             .background(Color.cycleCanvasBackground)
         }
@@ -74,6 +70,37 @@ struct RoutePickView: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
+            bottomActionBar
+        }
+        .toolbar(.hidden, for: .tabBar)
+        .sheet(isPresented: $showSaveForLaterSheet) {
+            saveRouteSheet
+        }
+        .alert(String(localized: "Route saved"), isPresented: $showRouteSavedConfirmation) {
+            Button(String(localized: "OK"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "You can start this ride anytime from your saved plans (coming soon on Home)."))
+        }
+        .task(id: context) {
+            await loadRoutes()
+        }
+    }
+
+    
+    private var bottomActionBar: some View {
+        VStack(spacing: 10) {
+            Button {
+                plannedStartDate = Date().addingTimeInterval(7200)
+                showSaveForLaterSheet = true
+            } label: {
+                Label(String(localized: "Save for later"), systemImage: "bookmark")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+            }
+            .buttonStyle(.bordered)
+            .tint(Color.cycleAccent)
+
             Button {
                 startRideTapped()
             } label: {
@@ -85,17 +112,54 @@ struct RoutePickView: View {
                     .padding(.vertical, 11)
             }
             .buttonStyle(.borderedProminent)
-            .controlSize(.small)
             .tint(Color.cycleAccent)
-            .padding(.horizontal, 12)
-            .padding(.top, 6)
-            .padding(.bottom, 5)
-            .background(.ultraThinMaterial)
         }
-        .toolbar(.hidden, for: .tabBar)
-        .task(id: context) {
-            await loadRoutes()
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+        .background(Color.cycleCanvasBackground)
+    }
+
+    private var saveRouteSheet: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    if !routes.isEmpty, routes.indices.contains(selectedIndex) {
+                        LabeledContent(String(localized: "Route")) {
+                            Text(routes[selectedIndex].title)
+                                .foregroundStyle(Color.cycleSecondaryText)
+                        }
+                    }
+                    DatePicker(
+                        String(localized: "Planned start"),
+                        selection: $plannedStartDate,
+                        in: Date()...Date.distantFuture,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                } footer: {
+                    Text(String(localized: "The route is saved on this device for your chosen time. You’ll be able to open it from Home in a future update."))
+                        .font(.footnote)
+                }
+            }
+            .navigationTitle(String(localized: "Save route"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(String(localized: "Cancel")) {
+                        showSaveForLaterSheet = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(String(localized: "Save")) {
+                        saveSelectedRouteForLater()
+                    }
+                    .fontWeight(.semibold)
+                    .disabled(routes.isEmpty || !routes.indices.contains(selectedIndex))
+                }
+            }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private var mapSection: some View {
@@ -176,7 +240,7 @@ struct RoutePickView: View {
         }
     }
 
-    /// Baris ringkas saat kartu lain sedang accordion terbuka — satu ketukan pilih rute + buka detailnya.
+    
     private func compactRouteRow(route: RouteCardModel, index: Int, selected _: Bool) -> some View {
         Button {
             selectedIndex = index
@@ -319,7 +383,7 @@ struct RoutePickView: View {
         .accessibilityHint(String(localized: "Shows distance, time, and route breakdown"))
     }
 
-    /// Chevron ke bawah = bisa dibuka; lebih tegas saat kartu ini yang dipilih di peta.
+    
     private func routeCardDisclosureChevron(accent: Color, emphasized: Bool) -> some View {
         VStack(spacing: 2) {
             Image(systemName: "chevron.down")
@@ -332,7 +396,7 @@ struct RoutePickView: View {
         .accessibilityHidden(true)
     }
 
-    /// Chip rekomendasi + jenis transport (dipakai kartu default & ringkas).
+    
     @ViewBuilder
     private func routeTagRow(for route: RouteCardModel) -> some View {
         HStack(spacing: 8) {
@@ -397,14 +461,14 @@ struct RoutePickView: View {
             .clipShape(Capsule())
     }
 
-    /// Ambil baris pertama subtitle (ringkas di header accordion).
+    
     private func routeSubtitleHeadline(_ subtitle: String) -> String {
         subtitle.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
             .first
             .map(String.init) ?? subtitle
     }
 
-    /// Grid utama 2×2 seperti referensi desain: jarak, waktu, elevasi, perkiraan persimpangan.
+    
     private func expandedPrimaryMetricsGrid(route: RouteCardModel) -> some View {
         let accent = route.lineColor
         let elev = route.elevationGainMeters.map { String(format: "+%.0f m", $0) }
@@ -562,6 +626,21 @@ struct RoutePickView: View {
         let route = routes[selectedIndex]
         let config = ActiveRideConfig.from(route: route, pickContext: context)
         path.append(RouteFlow.activeRide(config))
+    }
+
+    private func saveSelectedRouteForLater() {
+        guard !routes.isEmpty, routes.indices.contains(selectedIndex) else { return }
+        let route = routes[selectedIndex]
+        let config = ActiveRideConfig.from(route: route, pickContext: context)
+        let plan = SavedRoutePlan(
+            id: UUID(),
+            plannedStart: plannedStartDate,
+            savedAt: Date(),
+            config: config
+        )
+        SavedRoutePlansPersistence.append(plan)
+        showSaveForLaterSheet = false
+        showRouteSavedConfirmation = true
     }
 
     private func loadRoutes() async {

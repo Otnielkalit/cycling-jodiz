@@ -1,8 +1,3 @@
-//
-//  HomeView.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import MapKit
 import SwiftUI
@@ -96,7 +91,7 @@ struct HomeView: View {
                 .foregroundStyle(Color.cyclePrimaryText)
             Spacer()
             Button(String(localized: "See All")) {
-                // TODO: planned routes list
+                
             }
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(Color.cycleAccent)
@@ -128,8 +123,6 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Header (greeting + compact weather; cheer line below)
-
 private struct HomeHeaderGreetingRow: View {
     let periodLabel: String
     let headline: String
@@ -147,12 +140,12 @@ private struct HomeHeaderGreetingRow: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 14) {
                 VStack(alignment: .leading, spacing: 6) {
-                    // Eyebrow — konteks waktu (sentence case, bukan all-caps)
+                    
                     Text(periodLabel)
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(Color.cycleSecondaryText)
 
-                    // Judul utama — pesan paling kuat secara visual
+                    
                     Text(headline)
                         .font(.system(.title, design: .rounded).weight(.bold))
                         .foregroundStyle(Color.cyclePrimaryText)
@@ -178,7 +171,6 @@ private struct HomeHeaderGreetingRow: View {
     }
 }
 
-/// Hanya **ikon + suhu** — ringan; copy semangat ada di luar (di atas `HomeHeaderGreetingRow`).
 private struct HomeWeatherHeaderCompact: View {
     let viewModel: HomeWeatherViewModel
 
@@ -216,8 +208,6 @@ private struct HomeWeatherHeaderCompact: View {
         )
     }
 }
-
-// MARK: - Primary generate route (main product action)
 
 private struct HomePrimaryGenerateRouteCard: View {
     var action: () -> Void
@@ -283,10 +273,8 @@ private struct HomePrimaryGenerateRouteCard: View {
     }
 }
 
-// MARK: - Planned route (Up Next)
-
 private struct HomePlannedRouteCard: View {
-    /// Demo polyline so the map reads like the mockup (blue path).
+    
     private static let previewRouteCoordinates: [CLLocationCoordinate2D] = [
         CLLocationCoordinate2D(latitude: -6.198, longitude: 106.805),
         CLLocationCoordinate2D(latitude: -6.208, longitude: 106.818),
@@ -372,8 +360,6 @@ private struct HomePlannedRouteCard: View {
         .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 4)
     }
 }
-
-// MARK: - Last ride stats
 
 private struct HomeLastRideStatsRow: View {
     var body: some View {

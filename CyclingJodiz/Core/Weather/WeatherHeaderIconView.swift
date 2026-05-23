@@ -1,19 +1,11 @@
-//
-//  WeatherHeaderIconView.swift
-//  CyclingJodiz
-//
-
 import SwiftUI
 import WeatherKit
 
-// MARK: - SF Symbol + effects
-
-/// Ikon cuaca di header: SF Symbol dari WeatherKit + efek halus (opsional).
 struct WeatherHeaderIconView: View {
     let symbolName: String
     let condition: WeatherCondition?
     var pointSize: CGFloat = 24
-    /// Matikan di chip header kecil supaya tidak “kedip” bersama orb.
+    
     var animatesSymbol: Bool = true
 
     private var motion: WeatherHeaderIconMotion {
@@ -40,16 +32,13 @@ struct WeatherHeaderIconView: View {
     }
 }
 
-// MARK: - Orb (gradient ring + breathe)
-
-/// Lingkaran lembut di sekitar ikon; animasi halus hanya saat `animated == true` (orb besar).
 struct WeatherHeaderIconOrb: View {
     let symbolName: String
     let condition: WeatherCondition?
     let isLoading: Bool
-    /// Outer diameter; default 72 for hero, ~52 for compact header chip.
+    
     var diameter: CGFloat = 72
-    /// `false` untuk chip header: tanpa TimelineView / denyut / cincin mutar (menghindari kedip).
+    
     var animated: Bool = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -80,7 +69,7 @@ struct WeatherHeaderIconOrb: View {
         .accessibilityHidden(true)
     }
 
-    /// Chip header: statis, tidak re-draw tiap frame.
+    
     private var orbStackStill: some View {
         ZStack {
             Circle()
@@ -171,8 +160,6 @@ struct WeatherHeaderIconOrb: View {
         .scaleEffect(isLoading ? 1.0 : breathe)
     }
 }
-
-// MARK: - Motion buckets (WeatherKit → SF Symbol effects)
 
 private enum WeatherHeaderIconMotion {
     case none

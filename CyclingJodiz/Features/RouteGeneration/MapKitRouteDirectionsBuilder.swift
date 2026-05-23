@@ -1,8 +1,3 @@
-//
-//  MapKitRouteDirectionsBuilder.swift
-//  CyclingJodiz
-//
-
 import CoreLocation
 import Foundation
 import MapKit
@@ -22,15 +17,12 @@ enum MapKitRouteDirectionsError: LocalizedError {
     }
 }
 
-/// Membangun kartu rute dari **Apple MapKit** (`MKDirections`).
-/// **Loop:** target km → round trip; cycling dulu, lalu **mobil** (bukan jalan kaki) + ETA perkiraan sepeda + heuristik karakter jalan.
-/// **A→B:** preferensi panjang (km) → rute sepeda terpendek + opsi **mutar** bila target jauh lebih panjang; teks jelaskan lurus vs preferensi vs aktual.
 enum MapKitRouteDirectionsBuilder {
 
-    /// Kecepatan rencana untuk ETA perkiraan saat garis mengikuti arah mobil (km/jam).
+    
     private static let assumedCyclingSpeedKmh: Double = 18
 
-    // MARK: - Public
+    
 
     static func buildRouteCards(context: RoutePickContext) async throws -> [RouteCardModel] {
         switch context {
@@ -62,7 +54,7 @@ enum MapKitRouteDirectionsBuilder {
         String(localized: "Time ≈ riding at \(Int(assumedCyclingSpeedKmh)) km/h (rough plan).")
     }
 
-    /// Heuristik sederhana dari rute **mobil** Maps (bukan data jenis jalan resmi).
+    
     private static func legRoadCharacterHint(
         distance: CLLocationDistance,
         time: TimeInterval,
@@ -89,9 +81,9 @@ enum MapKitRouteDirectionsBuilder {
         )
     }
 
-    // MARK: - A → B
+    
 
-    /// Bearing awal A→B (derajat, 0…360).
+    
     private static func bearingDegrees(from a: CLLocationCoordinate2D, to b: CLLocationCoordinate2D) -> Double {
         let φ1 = a.latitude * .pi / 180
         let φ2 = b.latitude * .pi / 180
@@ -185,7 +177,7 @@ enum MapKitRouteDirectionsBuilder {
         return (dur, implied, sharp, rows)
     }
 
-    /// Penjelasan: garis lurus A→B, preferensi km (perkiraan), vs panjang jalur di jalan.
+    
     private static func abLengthSupplement(
         routeMeters: CLLocationDistance,
         crowMeters: CLLocationDistance,
@@ -615,9 +607,9 @@ enum MapKitRouteDirectionsBuilder {
         return markABRecommended(cards)
     }
 
-    // MARK: - Loop
+    
 
-    /// Jarak lurus ke titik jangkar per bearing — perkiraan agar total pulang-pergi ~ `targetKm`.
+    
     private static func loopGeodesicAnchorMeters(forTargetKm targetKm: Double) -> Double {
         let straight = (targetKm * 1000) / 2.35
         return min(max(straight, 600), 14_000)
@@ -730,7 +722,7 @@ enum MapKitRouteDirectionsBuilder {
             + bikeEtaFootnote()
     }
 
-    /// Menyambung dua polyline tanpa titik ganda di persimpangan (ujung kaki pertama ≈ awal kaki kedua).
+    
     private static func mergeCoordinatesJoiningNearby(
         _ first: [CLLocationCoordinate2D],
         _ second: [CLLocationCoordinate2D],
@@ -879,7 +871,7 @@ enum MapKitRouteDirectionsBuilder {
         return cards
     }
 
-    // MARK: - MKDirections
+    
 
     private static func calculateRoutes(
         from: CLLocationCoordinate2D,
@@ -896,7 +888,7 @@ enum MapKitRouteDirectionsBuilder {
         return response.routes
     }
 
-    /// Tidak melempar — dipakai untuk rantai fallback (cycling → mobil → jalan kaki terakhir untuk A→B).
+    
     private static func calculateRoutesSafe(
         from: CLLocationCoordinate2D,
         to: CLLocationCoordinate2D,
@@ -915,7 +907,7 @@ enum MapKitRouteDirectionsBuilder {
         }
     }
 
-    // MARK: - Geometry helpers
+    
 
     private static func coordinates(from polyline: MKPolyline) -> [CLLocationCoordinate2D] {
         let n = polyline.pointCount
@@ -937,7 +929,7 @@ enum MapKitRouteDirectionsBuilder {
         return CLLocationCoordinate2D(latitude: from.latitude + dLat, longitude: from.longitude + dLon)
     }
 
-    // MARK: - Formatting
+    
 
     private static let distanceFormatter: MeasurementFormatter = {
         let f = MeasurementFormatter()
