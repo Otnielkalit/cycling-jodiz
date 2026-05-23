@@ -22,11 +22,6 @@ struct HomeView: View {
                 .navigationTitle("")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbarBackground(.hidden, for: .navigationBar)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        CycleMapStylePickerMenu()
-                    }
-                }
                 .navigationDestination(for: RouteFlow.self) { step in
                     switch step {
                     case .hub:
@@ -149,31 +144,35 @@ private struct HomeHeaderGreetingRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 14) {
                 VStack(alignment: .leading, spacing: 6) {
+                    // Eyebrow — konteks waktu (sentence case, bukan all-caps)
                     Text(periodLabel)
-                        .font(.caption.weight(.semibold))
+                        .font(.subheadline.weight(.medium))
                         .foregroundStyle(Color.cycleSecondaryText)
-                        .textCase(.uppercase)
-                        .tracking(0.6)
+
+                    // Judul utama — pesan paling kuat secara visual
                     Text(headline)
-                        .font(.title2.weight(.bold))
+                        .font(.system(.title, design: .rounded).weight(.bold))
                         .foregroundStyle(Color.cyclePrimaryText)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 HomeWeatherHeaderCompact(viewModel: weatherViewModel)
+                    .padding(.top, 2)
             }
 
             Text(verbatim: cheerEnglish)
-                .font(.footnote)
+                .font(.subheadline)
                 .fontWeight(.regular)
-                .foregroundStyle(Color.cycleSecondaryText.opacity(0.88))
+                .foregroundStyle(Color.cycleSecondaryText)
                 .multilineTextAlignment(.leading)
-                .lineSpacing(3)
+                .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 12)
         }
         .accessibilityElement(children: .combine)
     }
