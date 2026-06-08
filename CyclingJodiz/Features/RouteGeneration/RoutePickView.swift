@@ -17,6 +17,7 @@ struct RoutePickView: View {
     @State private var showSaveForLaterSheet = false
     @State private var plannedStartDate = Date().addingTimeInterval(7200)
     @State private var showRouteSavedConfirmation = false
+    @State private var showMapRecenterButton = false
 
     
     private let mapPreferredMaxHeight: CGFloat = 260
@@ -24,7 +25,11 @@ struct RoutePickView: View {
     init(path: Binding<NavigationPath>, context: RoutePickContext) {
         _path = path
         self.context = context
-        _cameraPosition = State(initialValue: .region(Self.initialRegion(for: context)))
+        let raw = UserDefaults.standard.string(forKey: CycleMapDisplayStyle.storageKey)
+            ?? CycleMapDisplayStyle.standard.rawValue
+        let style = CycleMapDisplayStyle.resolved(from: raw)
+        let region = Self.initialRegion(for: context)
+        _cameraPosition = State(initialValue: CycleMapCameraFraming.position(region: region, displayStyle: style))
     }
 
     var body: some View {
@@ -83,6 +88,53 @@ struct RoutePickView: View {
         }
         .task(id: context) {
             await loadRoutes()
+        }
+        .overlay {
+            routeFetchLoadingOverlay
+        }
+        .animation(.easeInOut(duration: 0.22), value: isLoading)
+        .onChange(of: mapStyleRaw) { _, _ in
+            if !routes.isEmpty {
+                fitMap(to: routes)
+            } else {
+                let style = CycleMapDisplayStyle.resolved(from: mapStyleRaw)
+                cameraPosition = CycleMapCameraFraming.position(
+                    region: Self.initialRegion(for: context),
+                    displayStyle: style
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var routeFetchLoadingOverlay: some View {
+        if isLoading {
+            ZStack {
+                Color.black.opacity(0.5)
+                    .ignoresSafeArea()
+
+                VStack(spacing: 14) {
+                    ProgressView()
+                        .controlSize(.large)
+                        .tint(Color.cycleAccent)
+                    Text(String(localized: "Loading routes…"))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.cyclePrimaryText)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 28)
+                .padding(.vertical, 24)
+                .background(Color.cycleCardSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(Color.cycleBorder.opacity(0.55), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.2), radius: 24, x: 0, y: 12)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(String(localized: "Loading routes"))
         }
     }
 
@@ -163,7 +215,7 @@ struct RoutePickView: View {
     }
 
     private var mapSection: some View {
-        ZStack {
+        ZStack(alignment: .bottomTrailing) {
             Map(position: $cameraPosition) {
                 ForEach(Array(routes.enumerated()), id: \.element.id) { index, route in
                     MapPolyline(coordinates: route.coordinates)
@@ -175,17 +227,35 @@ struct RoutePickView: View {
                 mapAnnotations
             }
             .mapStyle(CycleMapDisplayStyle.resolved(from: mapStyleRaw).toMapStyle())
-
-            if isLoading {
-                VStack(spacing: 8) {
-                    ProgressView()
-                    Text(String(localized: "Loading routes…"))
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(Color.cycleSecondaryText)
+            .mapRecenterGestureTracking(position: $cameraPosition, showRecenter: $showMapRecenterButton)
+            .mapControls {
+                if CycleMapDisplayStyle.resolved(from: mapStyleRaw).prefersPitchedMapCamera {
+                    MapPitchToggle()
                 }
-                .padding(14)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
+
+            if showMapRecenterButton {
+                MapRecenterFloatingButton(
+                    action: { recenterMapToRoutes() },
+                    accessibilityLabel: String(localized: "Show all routes on map")
+                )
+                .padding(8)
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: showMapRecenterButton)
+    }
+
+    private func recenterMapToRoutes() {
+        showMapRecenterButton = false
+        if !routes.isEmpty {
+            fitMap(to: routes)
+        } else {
+            let style = CycleMapDisplayStyle.resolved(from: mapStyleRaw)
+            cameraPosition = CycleMapCameraFraming.position(
+                region: Self.initialRegion(for: context),
+                displayStyle: style
+            )
         }
     }
 
@@ -677,11 +747,12 @@ struct RoutePickView: View {
             maxLon = max(maxLon, c.longitude)
         }
         let mid = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
-        let dLat = max((maxLat - minLat) * 1.45, 0.006)
-        let dLon = max((maxLon - minLon) * 1.45, 0.006)
-        cameraPosition = .region(
-            MKCoordinateRegion(center: mid, span: MKCoordinateSpan(latitudeDelta: dLat, longitudeDelta: dLon))
-        )
+        let padding = 1.12
+        let dLat = max((maxLat - minLat) * padding, 0.004)
+        let dLon = max((maxLon - minLon) * padding, 0.004)
+        let region = MKCoordinateRegion(center: mid, span: MKCoordinateSpan(latitudeDelta: dLat, longitudeDelta: dLon))
+        let style = CycleMapDisplayStyle.resolved(from: mapStyleRaw)
+        cameraPosition = CycleMapCameraFraming.position(region: region, displayStyle: style)
     }
 
     private static func initialRegion(for context: RoutePickContext) -> MKCoordinateRegion {
@@ -690,13 +761,13 @@ struct RoutePickView: View {
             let s = start.clLocationCoordinate2D
             let e = end.clLocationCoordinate2D
             let mid = CLLocationCoordinate2D(latitude: (s.latitude + e.latitude) / 2, longitude: (s.longitude + e.longitude) / 2)
-            let dLat = max(abs(s.latitude - e.latitude) * 2.2, 0.02)
-            let dLon = max(abs(s.longitude - e.longitude) * 2.2, 0.02)
+            let dLat = max(abs(s.latitude - e.latitude) * 1.25, 0.008)
+            let dLon = max(abs(s.longitude - e.longitude) * 1.25, 0.008)
             return MKCoordinateRegion(center: mid, span: MKCoordinateSpan(latitudeDelta: dLat, longitudeDelta: dLon))
         case .loop(let center, _):
             return MKCoordinateRegion(
                 center: center.clLocationCoordinate2D,
-                span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)
+                span: MKCoordinateSpan(latitudeDelta: 0.022, longitudeDelta: 0.022)
             )
         }
     }

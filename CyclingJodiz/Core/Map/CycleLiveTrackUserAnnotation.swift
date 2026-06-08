@@ -4,9 +4,10 @@ import SwiftUI
 struct CycleLiveTrackUserAnnotation: View {
     
     var courseDegrees: CLLocationDirection?
+    private var markerSize: CGFloat
 
     private static let assetName = "LiveTrackUserPuck"
-    private static let markerSize: CGFloat = 44
+    private static let defaultMarkerSize: CGFloat = 44
 
     private var rotation: Angle {
         guard let c = courseDegrees, c >= 0, c <= 360, c.isFinite else {
@@ -20,7 +21,7 @@ struct CycleLiveTrackUserAnnotation: View {
             .renderingMode(.original)
             .resizable()
             .scaledToFit()
-            .frame(width: Self.markerSize, height: Self.markerSize)
+            .frame(width: markerSize, height: markerSize)
             .rotationEffect(rotation)
             .shadow(color: .black.opacity(0.22), radius: 3, x: 0, y: 1)
             .accessibilityLabel(String(localized: "Your location on the map"))
@@ -29,8 +30,9 @@ struct CycleLiveTrackUserAnnotation: View {
 
 extension CycleLiveTrackUserAnnotation {
     
-    init(location: CLLocation?) {
-        self.init(courseDegrees: Self.validCourse(from: location))
+    init(location: CLLocation?, markerSize: CGFloat = Self.defaultMarkerSize) {
+        self.courseDegrees = Self.validCourse(from: location)
+        self.markerSize = markerSize
     }
 
     private static func validCourse(from location: CLLocation?) -> CLLocationDirection? {

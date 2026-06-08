@@ -9,6 +9,7 @@ struct RouteSearchHubView: View {
     @AppStorage(CycleMapDisplayStyle.storageKey) private var mapStyleRaw: String = CycleMapDisplayStyle.standard.rawValue
     @State private var form = RouteHubFormModel()
     @State private var mapCamera: MapCameraPosition = .userLocation(fallback: .automatic)
+    @State private var showMapRecenterButton = false
     @State private var showLoopRouteSheet = false
     @State private var showABRouteSheet = false
 
@@ -132,12 +133,25 @@ struct RouteSearchHubView: View {
     }
 
     private var mapInnerCard: some View {
-        Map(position: $mapCamera) {
-            UserAnnotation {
-                CycleLiveTrackUserAnnotation(location: locationManager.currentLocation)
+        ZStack(alignment: .bottomTrailing) {
+            Map(position: $mapCamera) {
+                UserAnnotation {
+                    CycleLiveTrackUserAnnotation(location: locationManager.currentLocation)
+                }
+            }
+            .mapStyle(CycleMapDisplayStyle.resolved(from: mapStyleRaw).toMapStyle())
+            .mapRecenterGestureTracking(position: $mapCamera, showRecenter: $showMapRecenterButton)
+
+            if showMapRecenterButton {
+                MapRecenterFloatingButton(
+                    action: { recenterHubMap() },
+                    accessibilityLabel: String(localized: "Center map on your location")
+                )
+                .padding(8)
+                .transition(.scale.combined(with: .opacity))
             }
         }
-        .mapStyle(CycleMapDisplayStyle.resolved(from: mapStyleRaw).toMapStyle())
+        .animation(.easeInOut(duration: 0.2), value: showMapRecenterButton)
         .frame(height: Self.mapInnerHeight)
         .frame(maxWidth: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: Self.mapCornerRadius, style: .continuous))
@@ -148,6 +162,15 @@ struct RouteSearchHubView: View {
         .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
         .allowsHitTesting(true)
         .accessibilityLabel(String(localized: "Map showing your area"))
+    }
+
+    private func recenterHubMap() {
+        showMapRecenterButton = false
+        let center = locationManager.currentLocation?.coordinate ?? Self.fallbackMapCenter
+        syncRegionFromLocation()
+        mapCamera = .region(
+            MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: 0.055, longitudeDelta: 0.055))
+        )
     }
 
     private var gojekHubCard: some View {

@@ -19,14 +19,14 @@ struct RouteLoopSearchSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    loopSearchSection
+                    loopCenterCard
                     distanceSection
                     loopCompletionsSection
                     findRoutesSection
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
+                .padding(.top, 6)
+                .padding(.bottom, 20)
             }
             .scrollDismissesKeyboard(.interactively)
             .background(Color.cycleCanvasBackground)
@@ -70,97 +70,151 @@ struct RouteLoopSearchSheet: View {
         }
     }
 
-    private var loopSearchSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(String(localized: "Start point"))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.cycleSecondaryText)
-
-            HStack(spacing: 10) {
-                Circle()
-                    .fill(Color.cycleAccent)
-                    .frame(width: 10, height: 10)
-
-                TextField(String(localized: "Search on map"), text: $form.loopLocationQuery)
-                    .focused($focusedField, equals: .loopCenter)
-                    .textInputAutocapitalization(.words)
-                    .submitLabel(.search)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.cyclePrimaryText)
-                    .tint(Color.cycleAccent)
-                    .onChange(of: form.loopLocationQuery) { _, _ in
-                        guard focusedField == .loopCenter else { return }
-                        form.setActiveSlot(.loopCenter)
-                        form.scheduleCompleterQueryUpdate()
-                    }
-                    .onSubmit { form.scheduleCompleterQueryUpdate() }
-
-                Button {
-                    Task {
-                        await form.applyYourLocation(slot: .loopCenter, location: locationManager.currentLocation)
-                        form.clearCompletions()
-                    }
-                } label: {
-                    Label(String(localized: "Your location"), systemImage: "location.fill")
-                        .font(.caption2.weight(.semibold))
-                        .labelStyle(.iconOnly)
-                        .foregroundStyle(Color.cycleAccent)
-                        .padding(8)
-                        .background(Color.cycleAccent.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(String(localized: "Your location"))
+    private var loopCenterCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 12) {
+                loopCenterIconColumn
+                loopCenterFieldRow
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.cycleCanvasBackground.opacity(0.65))
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .padding(.vertical, 10)
+        }
+        .background(Color.cycleCardSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.cycleBorder.opacity(0.5), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 4)
+    }
+
+    private var loopCenterIconColumn: some View {
+        ZStack {
+            Circle()
+                .fill(Color.cycleSuccess)
+                .frame(width: 24, height: 24)
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.white)
+        }
+        .frame(width: 26)
+        .padding(.top, 2)
+        .accessibilityHidden(true)
+    }
+
+    private var loopCenterFieldRow: some View {
+        HStack(spacing: 8) {
+            TextField(
+                "",
+                text: $form.loopLocationQuery,
+                prompt: Text(String(localized: "Loop center…"))
+                    .font(.subheadline)
+                    .foregroundStyle(Color.cycleSecondaryText)
+            )
+            .focused($focusedField, equals: .loopCenter)
+            .textInputAutocapitalization(.words)
+            .submitLabel(.search)
+            .font(.subheadline)
+            .foregroundStyle(Color.cyclePrimaryText)
+            .tint(Color.cycleAccent)
+            .onChange(of: form.loopLocationQuery) { _, _ in
+                guard focusedField == .loopCenter else { return }
+                form.setActiveSlot(.loopCenter)
+                form.scheduleCompleterQueryUpdate()
+            }
+            .onSubmit { form.scheduleCompleterQueryUpdate() }
+
+            loopYourLocationButton
+        }
+        .padding(.vertical, 6)
+    }
+
+    private var loopYourLocationButton: some View {
+        Button {
+            Task {
+                await form.applyYourLocation(slot: .loopCenter, location: locationManager.currentLocation)
+                form.clearCompletions()
+            }
+        } label: {
+            Image(systemName: "location.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.cycleAccent)
+                .frame(width: 32, height: 32)
+                .background(Color.cycleAccent.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(String(localized: "Use current location as loop center"))
+    }
+
+    private static let quickDistanceKmValues: [Int] = [10, 15, 20, 25, 30, 40, 50]
+
+    private var distanceSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(String(localized: "Target distance"))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.cyclePrimaryText)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Self.quickDistanceKmValues, id: \.self) { km in
+                        distanceQuickChip(km: km)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+
+            HStack(spacing: 10) {
+                TextField(String(localized: "Custom"), text: $form.distanceKmText)
+                    .focused($focusedField, equals: .distance)
+                    .keyboardType(.decimalPad)
+                    .font(.system(.title3, design: .rounded).weight(.semibold))
+                    .foregroundStyle(Color.cyclePrimaryText)
+                    .tint(Color.cycleAccent)
+                    .multilineTextAlignment(.leading)
+
+                Text(String(localized: "km"))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.cycleSecondaryText)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.cycleBorder.opacity(0.35))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(Color.cycleCardSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.cycleBorder, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.cycleBorder.opacity(0.55), lineWidth: 1)
             )
         }
     }
 
-    private var distanceSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(String(localized: "Target distance (km)"))
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(Color.cycleSecondaryText)
-
-            TextField(String(localized: "e.g. 20"), text: $form.distanceKmText)
-                .focused($focusedField, equals: .distance)
-                .keyboardType(.decimalPad)
-                .font(.subheadline)
-                .foregroundStyle(Color.cyclePrimaryText)
-                .tint(Color.cycleAccent)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color.cycleCardSurface)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.cycleBorder, lineWidth: 1)
-                )
-
-            Text(String(localized: "Paths return to your start. Distance on each card is the full round trip in Maps."))
-                .font(.caption2)
-                .foregroundStyle(Color.cycleSecondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(String(localized: "We aim for your target km (round trip). If Maps has no cycling line, we use driving roads as a shape hint and show an estimated bike time (~18 km/h) — not car clock time."))
-                .font(.caption2)
-                .foregroundStyle(Color.cycleSecondaryText)
-                .fixedSize(horizontal: false, vertical: true)
+    private func distanceQuickChip(km: Int) -> some View {
+        let matches = form.parsedDistanceKm.map { abs($0 - Double(km)) < 0.001 } ?? false
+        return Button {
+            form.distanceKmText = "\(km)"
+            focusedField = nil
+        } label: {
+            Text("\(km)")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(matches ? Color.white : Color.cyclePrimaryText)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(matches ? Color.cycleAccent : Color.cycleBorder.opacity(0.32))
+                .clipShape(Capsule())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(km) \(String(localized: "km"))")
     }
 
     private var loopCompletionsSection: some View {
         Group {
             if form.loopCenterItem == nil, !form.completions.isEmpty, focusedField != .distance {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(String(localized: "Map suggestions"))
+                    Text(String(localized: "Places"))
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(Color.cycleSecondaryText)
                         .padding(.bottom, 4)
@@ -188,7 +242,7 @@ struct RouteLoopSearchSheet: View {
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                 }
-                                .padding(.vertical, 8)
+                                .padding(.vertical, 10)
                             }
                             .buttonStyle(.plain)
 
@@ -197,6 +251,7 @@ struct RouteLoopSearchSheet: View {
                             }
                         }
                     }
+                    .padding(.horizontal, 10)
                 }
                 .padding(10)
                 .background(Color.cycleCardSurface)
@@ -220,7 +275,7 @@ struct RouteLoopSearchSheet: View {
 
             Button {
                 let centerCoord = form.loopCenterItem!.placemark.coordinate
-                let km = Double(form.distanceKmText.replacingOccurrences(of: ",", with: ".")) ?? 20
+                let km = form.parsedDistanceKm ?? 20
                 let ctx = RoutePickContext.loop(center: MapCoordinate(centerCoord), targetKm: km)
                 path.append(RouteFlow.pick(ctx))
                 form.clearScenario()

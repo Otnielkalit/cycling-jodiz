@@ -3,14 +3,43 @@ import Foundation
 import MapKit
 import SwiftUI
 
+/// Apple throttles `MKDirections` (commonly 50 requests / 60 s per app). Space calls out and wait when the window is full.
+private actor MapDirectionsRequestThrottle {
+    private var requestTimes: [Date] = []
+    /// Stay under Apple’s short-window cap so route generation stays reliable during dev / “Find routes” retries.
+    private let maxRequestsPerWindow = 35
+    private let windowDuration: TimeInterval = 60
+
+    func acquire() async {
+        while true {
+            let now = Date()
+            requestTimes.removeAll { now.timeIntervalSince($0) > windowDuration }
+            if requestTimes.count < maxRequestsPerWindow {
+                requestTimes.append(now)
+                return
+            }
+            guard let oldest = requestTimes.min() else {
+                requestTimes.append(now)
+                return
+            }
+            let wait = oldest.addingTimeInterval(windowDuration).timeIntervalSince(now) + 0.12
+            let sleepSec = max(0.2, min(wait, 62))
+            try? await Task.sleep(for: .seconds(sleepSec))
+        }
+    }
+}
+
 enum MapKitRouteDirectionsError: LocalizedError {
     case noRoutes
+    case noRoutesWithinTargetLengthCap
     case underlying(Error)
 
     var errorDescription: String? {
         switch self {
         case .noRoutes:
             return String(localized: "No routes returned from Maps.")
+        case .noRoutesWithinTargetLengthCap:
+            return String(localized: "No routes within 2 km over your target length. Try different places or distance.")
         case .underlying(let error):
             return error.localizedDescription
         }
@@ -19,10 +48,14 @@ enum MapKitRouteDirectionsError: LocalizedError {
 
 enum MapKitRouteDirectionsBuilder {
 
+    private static let directionsThrottle = MapDirectionsRequestThrottle()
+
     
     private static let assumedCyclingSpeedKmh: Double = 18
 
-    
+    private static let maxMetersOverPreferredRouteLength: CLLocationDistance = 2000
+
+    private static let loopVersusTargetCloseMeters: CLLocationDistance = 300
 
     static func buildRouteCards(context: RoutePickContext) async throws -> [RouteCardModel] {
         switch context {
@@ -245,9 +278,8 @@ enum MapKitRouteDirectionsBuilder {
         let bearingAB = bearingDegrees(from: start, to: end)
         let extra = targetMeters - baselineMeters
         let cap = min(42_000, max(400, extra * 0.78 + crow * 0.22))
-        let template: [Double] = [
-            280, 520, 900, 1500, 2400, 3800, 6000, 9000, 13_000, 18_000, 24_000, 30_000, 38_000
-        ]
+        // Fewer samples than before: each offset can cost several MKDirections calls (two legs × mode fallbacks).
+        let template: [Double] = [400, 1100, 2800, 6500, 14_000, 26_000, 38_000]
         let offsets = template.filter { $0 <= cap }
         guard !offsets.isEmpty else { return [] }
 
@@ -262,6 +294,7 @@ enum MapKitRouteDirectionsBuilder {
         func bestForSide(turnLeft: Bool) async -> Best? {
             var winner: Best?
             var bestScore = Double.greatestFiniteMagnitude
+            let closeEnoughM: CLLocationDistance = min(500, max(220, targetMeters * 0.04))
             for off in offsets {
                 let via = perpendicularWaypoint(mid: mid, bearingAB: bearingAB, offsetMeters: off, turnLeft: turnLeft)
                 guard let trip = await twoLegMergedAB(start: start, via: via, end: end) else { continue }
@@ -276,6 +309,7 @@ enum MapKitRouteDirectionsBuilder {
                         kind: trip.kind,
                         mkRoutes: trip.routes
                     )
+                    if bestScore <= closeEnoughM { break }
                 }
             }
             return winner
@@ -339,6 +373,60 @@ enum MapKitRouteDirectionsBuilder {
         }
 
         return out
+    }
+
+    private static func rankLineColor(forRank rank: Int) -> Color {
+        switch rank {
+        case 0: return Color.cycleSuccess
+        case 1: return Color.cycleAccent
+        default: return Color.indigo
+        }
+    }
+
+    private static func orderedRoutesWithRankStyling(_ cards: [RouteCardModel]) -> [RouteCardModel] {
+        guard !cards.isEmpty else { return cards }
+        let goalM = cards.compactMap(\.targetPreferredKm).first.map { $0 * 1000 }
+        let sorted = cards.sorted { a, b in
+            if a.isRecommended != b.isRecommended {
+                return a.isRecommended && !b.isRecommended
+            }
+            let aAuto = a.transportKind == .automobile
+            let bAuto = b.transportKind == .automobile
+            if aAuto != bAuto {
+                return !aAuto && bAuto
+            }
+            guard let g = goalM else {
+                return a.routeMeters < b.routeMeters
+            }
+            let da = abs(a.routeMeters - g)
+            let db = abs(b.routeMeters - g)
+            if abs(da - db) > 1 {
+                return da < db
+            }
+            return a.routeMeters < b.routeMeters
+        }
+        return sorted.enumerated().map { rank, card in
+            RouteCardModel(
+                id: card.id,
+                title: card.title,
+                subtitle: card.subtitle,
+                distanceLabel: card.distanceLabel,
+                timeLabel: card.timeLabel,
+                isRecommended: rank == 0,
+                lineColor: rankLineColor(forRank: rank),
+                coordinates: card.coordinates,
+                transportKind: card.transportKind,
+                crowFliesMeters: card.crowFliesMeters,
+                targetPreferredKm: card.targetPreferredKm,
+                routeMeters: card.routeMeters,
+                plannedDurationSeconds: card.plannedDurationSeconds,
+                impliedAverageSpeedKmh: card.impliedAverageSpeedKmh,
+                sharpTurnEstimateCount: card.sharpTurnEstimateCount,
+                breakdownRows: card.breakdownRows,
+                elevationGainMeters: card.elevationGainMeters,
+                recommendationTag: rank == 0 ? (card.recommendationTag ?? String(localized: "Best match")) : nil
+            )
+        }
     }
 
     private static func markABRecommended(_ cards: [RouteCardModel]) -> [RouteCardModel] {
@@ -566,7 +654,7 @@ enum MapKitRouteDirectionsBuilder {
             transport: .automobile,
             requestsAlternateRoutes: false
         )
-        if let route = autoRoutes.first {
+        if let route = autoRoutes.first, route.distance <= targetM + maxMetersOverPreferredRouteLength {
             let coords = coordinates(from: route.polyline)
             if !coords.isEmpty {
                 let hasCycling = cards.contains(where: { $0.transportKind == .cycling })
@@ -604,7 +692,9 @@ enum MapKitRouteDirectionsBuilder {
         }
 
         guard !cards.isEmpty else { throw MapKitRouteDirectionsError.noRoutes }
-        return markABRecommended(cards)
+        let filteredAB = cards.filter { $0.routeMeters <= targetM + maxMetersOverPreferredRouteLength }
+        guard !filteredAB.isEmpty else { throw MapKitRouteDirectionsError.noRoutesWithinTargetLengthCap }
+        return orderedRoutesWithRankStyling(markABRecommended(filteredAB))
     }
 
     
@@ -740,12 +830,43 @@ enum MapKitRouteDirectionsBuilder {
         return first + second
     }
 
+    private static func loopVersusTargetAppendix(routeMeters: CLLocationDistance, targetKm: Double) -> String {
+        let goal = targetKm * 1000
+        let delta = routeMeters - goal
+        let t = String(format: "%.1f", targetKm)
+        if abs(delta) < loopVersusTargetCloseMeters {
+            return String(localized: "Round trip is close to your ~\(t) km target.")
+        }
+        if delta >= loopVersusTargetCloseMeters {
+            let d = formatDistance(meters: delta)
+            return String(localized: "About \(d) longer than your ~\(t) km target.")
+        }
+        let d = formatDistance(meters: -delta)
+        return String(localized: "About \(d) shorter than your ~\(t) km target.")
+    }
+
+    private static func markLoopRecommended(_ cards: [RouteCardModel], targetKm: Double) -> [RouteCardModel] {
+        let goal = targetKm * 1000
+        let eligible = cards.indices.filter { cards[$0].transportKind != .automobile }
+        guard !eligible.isEmpty else { return cards }
+        guard
+            let best = eligible.min(by: { abs(cards[$0].routeMeters - goal) < abs(cards[$1].routeMeters - goal) })
+        else { return cards }
+        return cards.enumerated().map { i, c in
+            c.settingRecommended(
+                i == best,
+                recommendationTag: i == best ? String(localized: "Best match") : nil
+            )
+        }
+    }
+
     private static func routesForLoop(
         center: CLLocationCoordinate2D,
         targetKm: Double
     ) async throws -> [RouteCardModel] {
         let anchor = await tunedLoopAnchorMeters(center: center, targetKm: targetKm)
         let bearings: [Double] = [0, 125, 250]
+        let targetMeters = targetKm * 1000
 
         var cards: [RouteCardModel] = []
         var index = 0
@@ -754,8 +875,8 @@ enum MapKitRouteDirectionsBuilder {
         for bearing in bearings {
             let dest = offset(from: center, distanceMeters: anchor, bearingDegrees: bearing)
             let outs = await loopOutboundOptions(center: center, dest: dest)
+            guard let back = await loopReturnRoute(dest: dest, center: center) else { continue }
             for out in outs {
-                guard let back = await loopReturnRoute(dest: dest, center: center) else { continue }
                 let outCoords = coordinates(from: out.route.polyline)
                 let inCoords = coordinates(from: back.route.polyline)
                 guard !outCoords.isEmpty, !inCoords.isEmpty else { continue }
@@ -772,7 +893,7 @@ enum MapKitRouteDirectionsBuilder {
                     : estimatedCyclingDuration(distanceMeters: totalDist)
 
                 let badge: RouteCardModel.RouteTransportKind = bothCycling ? .cycling : .cyclingRoadEstimate
-                let subtitle = loopRoundTripSentence(
+                let baseSubtitle = loopRoundTripSentence(
                     outRoute: out.route,
                     inRoute: back.route,
                     outKind: out.kind,
@@ -781,6 +902,7 @@ enum MapKitRouteDirectionsBuilder {
                     center: center,
                     dest: dest
                 )
+                let subtitle = baseSubtitle + "\n\n" + loopVersusTargetAppendix(routeMeters: totalDist, targetKm: targetKm)
 
                 let m = routeDetailMetrics(
                     coordinates: merged,
@@ -797,7 +919,7 @@ enum MapKitRouteDirectionsBuilder {
                         subtitle: subtitle,
                         distanceLabel: formatDistance(meters: totalDist),
                         timeLabel: formatDuration(duration),
-                        isRecommended: index == 1,
+                        isRecommended: false,
                         lineColor: index % 2 == 1 ? Color.cycleSuccess : Color.cycleAccent,
                         coordinates: merged,
                         transportKind: badge,
@@ -809,7 +931,7 @@ enum MapKitRouteDirectionsBuilder {
                         sharpTurnEstimateCount: m.sharpTurnEstimateCount,
                         breakdownRows: m.breakdownRows,
                         elevationGainMeters: nil,
-                        recommendationTag: index == 1 ? String(localized: "Best match") : nil
+                        recommendationTag: nil
                     )
                 )
             }
@@ -834,41 +956,47 @@ enum MapKitRouteDirectionsBuilder {
                 if !outC.isEmpty, !inC.isEmpty {
                     let merged = mergeCoordinatesJoiningNearby(outC, inC)
                     let totalCar = outCar.distance + inCar.distance
-                    let durCar = outCar.expectedTravelTime + inCar.expectedTravelTime
-                    let m = routeDetailMetrics(
-                        coordinates: merged,
-                        breakdownRoutes: [outCar, inCar],
-                        routeMeters: totalCar,
-                        durationSeconds: durCar
-                    )
-                    cards.append(
-                        RouteCardModel(
-                            id: UUID(),
-                            title: String(localized: "Driving (comparison)"),
-                            subtitle: String(localized: "Same loop shape — car clock from Apple Maps (not bike time)."),
-                            distanceLabel: formatDistance(meters: outCar.distance + inCar.distance),
-                            timeLabel: formatDuration(outCar.expectedTravelTime + inCar.expectedTravelTime),
-                            isRecommended: false,
-                            lineColor: Color(red: 37 / 255, green: 99 / 255, blue: 235 / 255),
+                    if totalCar <= targetMeters + maxMetersOverPreferredRouteLength {
+                        let durCar = outCar.expectedTravelTime + inCar.expectedTravelTime
+                        let baseCarSubtitle = String(localized: "Same loop shape — car clock from Apple Maps (not bike time).")
+                        let subtitleCar = baseCarSubtitle + "\n\n" + loopVersusTargetAppendix(routeMeters: totalCar, targetKm: targetKm)
+                        let m = routeDetailMetrics(
                             coordinates: merged,
-                            transportKind: .automobile,
-                            crowFliesMeters: nil,
-                            targetPreferredKm: targetKm,
+                            breakdownRoutes: [outCar, inCar],
                             routeMeters: totalCar,
-                            plannedDurationSeconds: m.plannedDurationSeconds,
-                            impliedAverageSpeedKmh: m.impliedAverageSpeedKmh,
-                            sharpTurnEstimateCount: m.sharpTurnEstimateCount,
-                            breakdownRows: m.breakdownRows,
-                            elevationGainMeters: nil,
-                            recommendationTag: nil
+                            durationSeconds: durCar
                         )
-                    )
+                        cards.append(
+                            RouteCardModel(
+                                id: UUID(),
+                                title: String(localized: "Driving (comparison)"),
+                                subtitle: subtitleCar,
+                                distanceLabel: formatDistance(meters: outCar.distance + inCar.distance),
+                                timeLabel: formatDuration(outCar.expectedTravelTime + inCar.expectedTravelTime),
+                                isRecommended: false,
+                                lineColor: Color(red: 37 / 255, green: 99 / 255, blue: 235 / 255),
+                                coordinates: merged,
+                                transportKind: .automobile,
+                                crowFliesMeters: nil,
+                                targetPreferredKm: targetKm,
+                                routeMeters: totalCar,
+                                plannedDurationSeconds: m.plannedDurationSeconds,
+                                impliedAverageSpeedKmh: m.impliedAverageSpeedKmh,
+                                sharpTurnEstimateCount: m.sharpTurnEstimateCount,
+                                breakdownRows: m.breakdownRows,
+                                elevationGainMeters: nil,
+                                recommendationTag: nil
+                            )
+                        )
+                    }
                 }
             }
         }
 
         guard !cards.isEmpty else { throw MapKitRouteDirectionsError.noRoutes }
-        return cards
+        let filtered = cards.filter { $0.routeMeters <= targetMeters + maxMetersOverPreferredRouteLength }
+        guard !filtered.isEmpty else { throw MapKitRouteDirectionsError.noRoutesWithinTargetLengthCap }
+        return orderedRoutesWithRankStyling(markLoopRecommended(filtered, targetKm: targetKm))
     }
 
     
@@ -879,13 +1007,25 @@ enum MapKitRouteDirectionsBuilder {
         transport: MKDirectionsTransportType,
         requestsAlternateRoutes: Bool
     ) async throws -> [MKRoute] {
+        await directionsThrottle.acquire()
         let request = MKDirections.Request()
         request.source = MKMapItem(placemark: MKPlacemark(coordinate: from))
         request.destination = MKMapItem(placemark: MKPlacemark(coordinate: to))
         request.transportType = transport
         request.requestsAlternateRoutes = requestsAlternateRoutes
-        let response = try await MKDirections(request: request).calculate()
-        return response.routes
+        do {
+            let response = try await MKDirections(request: request).calculate()
+            return response.routes
+        } catch {
+            let ns = error as NSError
+            if ns.domain == "GEOErrorDomain", ns.code == -3 {
+                try await Task.sleep(for: .seconds(8))
+                await directionsThrottle.acquire()
+                let response = try await MKDirections(request: request).calculate()
+                return response.routes
+            }
+            throw error
+        }
     }
 
     

@@ -6,8 +6,38 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CEA83BBB2FCD47180087CC98 /* Cycling Watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = CEA83BBA2FCD47180087CC98 /* Cycling Watch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CEA83BBC2FCD47180087CC98 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CE94BBE32FBEAD840042755F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CEA83BB92FCD47180087CC98;
+			remoteInfo = "Cycling Watch Watch App";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CEA83BC72FCD47180087CC98 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				CEA83BBB2FCD47180087CC98 /* Cycling Watch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		CE94BBEB2FBEAD840042755F /* CyclingJodiz.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CyclingJodiz.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CEA83BB52FCD47170087CC98 /* Cycling Watch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Cycling Watch.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CEA83BBA2FCD47180087CC98 /* Cycling Watch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Cycling Watch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +46,22 @@
 			path = CyclingJodiz;
 			sourceTree = "<group>";
 		};
+		CEA83BBE2FCD47180087CC98 /* Cycling Watch Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Cycling Watch Watch App";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		CE94BBE82FBEAD840042755F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CEA83BB72FCD47180087CC98 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +75,7 @@
 			isa = PBXGroup;
 			children = (
 				CE94BBED2FBEAD840042755F /* CyclingJodiz */,
+				CEA83BBE2FCD47180087CC98 /* Cycling Watch Watch App */,
 				CE94BBEC2FBEAD840042755F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +84,8 @@
 			isa = PBXGroup;
 			children = (
 				CE94BBEB2FBEAD840042755F /* CyclingJodiz.app */,
+				CEA83BB52FCD47170087CC98 /* Cycling Watch.app */,
+				CEA83BBA2FCD47180087CC98 /* Cycling Watch Watch App.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +115,47 @@
 			productReference = CE94BBEB2FBEAD840042755F /* CyclingJodiz.app */;
 			productType = "com.apple.product-type.application";
 		};
+		CEA83BB42FCD47170087CC98 /* Cycling Watch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CEA83BCB2FCD47180087CC98 /* Build configuration list for PBXNativeTarget "Cycling Watch" */;
+			buildPhases = (
+				CEA83BB32FCD47170087CC98 /* Resources */,
+				CEA83BC72FCD47180087CC98 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CEA83BBD2FCD47180087CC98 /* PBXTargetDependency */,
+			);
+			name = "Cycling Watch";
+			packageProductDependencies = (
+			);
+			productName = "Cycling Watch";
+			productReference = CEA83BB52FCD47170087CC98 /* Cycling Watch.app */;
+			productType = "com.apple.product-type.application.watchapp2-container";
+		};
+		CEA83BB92FCD47180087CC98 /* Cycling Watch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CEA83BCA2FCD47180087CC98 /* Build configuration list for PBXNativeTarget "Cycling Watch Watch App" */;
+			buildPhases = (
+				CEA83BB62FCD47180087CC98 /* Sources */,
+				CEA83BB72FCD47180087CC98 /* Frameworks */,
+				CEA83BB82FCD47180087CC98 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CEA83BBE2FCD47180087CC98 /* Cycling Watch Watch App */,
+			);
+			name = "Cycling Watch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "Cycling Watch Watch App";
+			productReference = CEA83BBA2FCD47180087CC98 /* Cycling Watch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -81,6 +167,12 @@
 				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					CE94BBEA2FBEAD840042755F = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					CEA83BB42FCD47170087CC98 = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					CEA83BB92FCD47180087CC98 = {
 						CreatedOnToolsVersion = 26.5;
 					};
 				};
@@ -100,12 +192,28 @@
 			projectRoot = "";
 			targets = (
 				CE94BBEA2FBEAD840042755F /* CyclingJodiz */,
+				CEA83BB42FCD47170087CC98 /* Cycling Watch */,
+				CEA83BB92FCD47180087CC98 /* Cycling Watch Watch App */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		CE94BBE92FBEAD840042755F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CEA83BB32FCD47170087CC98 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CEA83BB82FCD47180087CC98 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +230,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CEA83BB62FCD47180087CC98 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CEA83BBD2FCD47180087CC98 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CEA83BB92FCD47180087CC98 /* Cycling Watch Watch App */;
+			targetProxy = CEA83BBC2FCD47180087CC98 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		CE94BBF42FBEAD840042755F /* Debug */ = {
@@ -251,7 +374,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = CyclingJodiz/CyclingJodiz.entitlements;
+				CODE_SIGN_ENTITLEMENTS = CyclingJodiz/CyclingJodizDebug.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 3W3H2RL43R;
@@ -314,6 +437,104 @@
 			};
 			name = Release;
 		};
+		CEA83BC52FCD47180087CC98 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3W3H2RL43R;
+				INFOPLIST_KEY_CFBundleDisplayName = "Cycling Watch";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "crafit-team.Cycling-Watch";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		CEA83BC62FCD47180087CC98 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3W3H2RL43R;
+				INFOPLIST_KEY_CFBundleDisplayName = "Cycling Watch";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "crafit-team.Cycling-Watch";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		CEA83BC82FCD47180087CC98 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3W3H2RL43R;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Cycling Watch";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKWatchOnly = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "crafit-team.Cycling-Watch.watchkitapp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Debug;
+		};
+		CEA83BC92FCD47180087CC98 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3W3H2RL43R;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Cycling Watch";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKWatchOnly = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "crafit-team.Cycling-Watch.watchkitapp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -331,6 +552,24 @@
 			buildConfigurations = (
 				CE94BBF72FBEAD840042755F /* Debug */,
 				CE94BBF82FBEAD840042755F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CEA83BCA2FCD47180087CC98 /* Build configuration list for PBXNativeTarget "Cycling Watch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CEA83BC82FCD47180087CC98 /* Debug */,
+				CEA83BC92FCD47180087CC98 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CEA83BCB2FCD47180087CC98 /* Build configuration list for PBXNativeTarget "Cycling Watch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CEA83BC52FCD47180087CC98 /* Debug */,
+				CEA83BC62FCD47180087CC98 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

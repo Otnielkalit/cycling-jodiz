@@ -220,7 +220,7 @@ private struct HomePrimaryGenerateRouteCard: View {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(Color.cycleAccent.opacity(0.14))
                             .frame(width: 48, height: 48)
-                        Image(systemName: "point.topleft.down.curvedto.point.bottomright.fill")
+                        Image(systemName: "point.topleft.down.to.point.bottomright.curvepath.fill")
                             .font(.title2.weight(.semibold))
                             .foregroundStyle(Color.cycleAccent)
                     }
