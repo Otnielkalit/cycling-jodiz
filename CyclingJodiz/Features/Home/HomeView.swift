@@ -253,7 +253,7 @@ private struct HomePrimaryGenerateRouteCard: View {
                             .multilineTextAlignment(.leading)
                         Text(
                             String(
-                                localized: "Loop or A to B—pick style, place, and distance. Let AI carve the perfect path for your performance."
+                                localized: "Loop or A to B—pick style, place, and distance. Create the perfect cycling route tailored to your performance."
                             )
                         )
                         .font(.subheadline)
