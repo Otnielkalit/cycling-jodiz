@@ -1,3 +1,10 @@
+//
+//  ActiveRideModels.swift
+//  CyclingJodiz
+//
+//  Created by otnielkalit on 11/06/26.
+//
+
 import CoreLocation
 import Foundation
 
@@ -47,7 +54,8 @@ struct ActiveRideConfig: Hashable, Codable {
     }
 }
 
-struct RideSummaryPayload: Hashable {
+struct RideSummaryPayload: Identifiable, Codable, Hashable {
+    let id: UUID
     let startedAt: Date
     let endedAt: Date
     let riddenDistanceMeters: Double

@@ -1,3 +1,10 @@
+//
+//  RideSummaryView.swift
+//  CyclingJodiz
+//
+//  Created by otnielkalit on 11/06/26.
+//
+
 import MapKit
 import SwiftUI
 
@@ -47,6 +54,7 @@ struct RideSummaryView: View {
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 10) {
                 Button {
+                    ActivityPersistence.append(payload)
                     path = NavigationPath()
                 } label: {
                     Text(String(localized: "Save Activity"))

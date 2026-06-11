@@ -1,3 +1,10 @@
+//
+//  ActiveRideView.swift
+//  CyclingJodiz
+//
+//  Created by otnielkalit on 11/06/26.
+//
+
 import CoreLocation
 import MapKit
 import Observation
@@ -475,6 +482,7 @@ struct ActiveRideView: View {
         WatchSessionManager.shared.sendRideData(["isRideActive": false])
         let ended = Date()
         let payload = RideSummaryPayload(
+            id: UUID(),
             startedAt: rideStartedAt,
             endedAt: ended,
             riddenDistanceMeters: max(odometerMeters, 1),

@@ -1,3 +1,10 @@
+//
+//  HomeView.swift
+//  CyclingJodiz
+//
+//  Created by otnielkalit on 11/06/26.
+//
+
 import CoreLocation
 import MapKit
 import SwiftUI
@@ -9,8 +16,8 @@ struct HomeView: View {
     @State private var path = NavigationPath()
     @State private var locationManager = LocationManager()
     @State private var weatherViewModel = HomeWeatherViewModel()
-    @State private var plannedRouteCamera: MapCameraPosition = .userLocation(fallback: .automatic)
-
+    @State private var savedPlans: [SavedRoutePlan] = []
+    @State private var lastActivity: RideSummaryPayload? = nil
     var body: some View {
         NavigationStack(path: $path) {
             homeScrollView
@@ -35,10 +42,19 @@ struct HomeView: View {
             locationManager.requestWhenInUseAuthorization()
             locationManager.startUpdatingLocation()
             weatherViewModel.refresh(for: locationManager.currentLocation)
+            loadPersistedData()
         }
         .onChange(of: locationManager.currentLocation) { _, newValue in
             weatherViewModel.refresh(for: newValue)
         }
+        .onChange(of: path) { _, _ in
+            loadPersistedData()
+        }
+    }
+
+    private func loadPersistedData() {
+        savedPlans = SavedRoutePlansPersistence.load()
+        lastActivity = ActivityPersistence.loadLast()
     }
 
     @ViewBuilder
@@ -62,14 +78,18 @@ struct HomeView: View {
             }
             homeUpNextHeader
             HomePlannedRouteCard(
-                cameraPosition: $plannedRouteCamera,
+                plan: savedPlans.first,
                 locationManager: locationManager,
                 onStartRide: {
-                    path.append(RouteFlow.activeRide(.demoRidgeLoop()))
+                    if let firstPlan = savedPlans.first {
+                        path.append(RouteFlow.activeRide(firstPlan.config))
+                    } else {
+                        path.append(RouteFlow.activeRide(.demoRidgeLoop()))
+                    }
                 }
             )
             homeLastRideHeader
-            HomeLastRideStatsRow()
+            HomeLastRideStatsRow(lastActivity: lastActivity)
         }
     }
 
@@ -274,29 +294,70 @@ private struct HomePrimaryGenerateRouteCard: View {
 }
 
 private struct HomePlannedRouteCard: View {
-    
-    private static let previewRouteCoordinates: [CLLocationCoordinate2D] = [
-        CLLocationCoordinate2D(latitude: -6.198, longitude: 106.805),
-        CLLocationCoordinate2D(latitude: -6.208, longitude: 106.818),
-        CLLocationCoordinate2D(latitude: -6.218, longitude: 106.808),
-        CLLocationCoordinate2D(latitude: -6.210, longitude: 106.798)
-    ]
+    let plan: SavedRoutePlan?
+    var locationManager: LocationManager
+    var onStartRide: () -> Void
+
+    private var titleText: String {
+        plan?.config.routeTitle ?? String(localized: "Ridge Loop")
+    }
+
+    private var distanceText: String {
+        if let plan {
+            return String(format: "%.1f km", plan.config.totalRouteMeters / 1000)
+        }
+        return String(localized: "24 km")
+    }
+
+    private var durationText: String {
+        if let plan {
+            let seconds = plan.config.totalRouteMeters / 5.0
+            let minutes = max(1, Int(seconds / 60))
+            return "\(minutes) min"
+        }
+        return String(localized: "55 min")
+    }
+
+    private var coordinates: [CLLocationCoordinate2D] {
+        if let plan {
+            return plan.config.coordinates.map(\.clLocationCoordinate2D)
+        }
+        return [
+            CLLocationCoordinate2D(latitude: -6.198, longitude: 106.805),
+            CLLocationCoordinate2D(latitude: -6.208, longitude: 106.818),
+            CLLocationCoordinate2D(latitude: -6.218, longitude: 106.808),
+            CLLocationCoordinate2D(latitude: -6.210, longitude: 106.798)
+        ]
+    }
+
+    private var initialCameraPosition: MapCameraPosition {
+        let coords = coordinates
+        guard !coords.isEmpty else { return .userLocation(fallback: .automatic) }
+        var minLat = 90.0, maxLat = -90.0, minLon = 180.0, maxLon = -180.0
+        for c in coords {
+            minLat = min(minLat, c.latitude)
+            maxLat = max(maxLat, c.latitude)
+            minLon = min(minLon, c.longitude)
+            maxLon = max(maxLon, c.longitude)
+        }
+        let mid = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
+        let dLat = max((maxLat - minLat) * 1.5, 0.015)
+        let dLon = max((maxLon - minLon) * 1.5, 0.015)
+        return .region(MKCoordinateRegion(center: mid, span: MKCoordinateSpan(latitudeDelta: dLat, longitudeDelta: dLon)))
+    }
 
     private static let mapPreviewHeight: CGFloat = 156
 
     @AppStorage(CycleMapDisplayStyle.storageKey) private var mapStyleRaw: String = CycleMapDisplayStyle.standard.rawValue
-    @Binding var cameraPosition: MapCameraPosition
-    var locationManager: LocationManager
-    var onStartRide: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack(alignment: .topLeading) {
-                Map(position: $cameraPosition) {
+                Map(initialPosition: initialCameraPosition) {
                     UserAnnotation {
                         CycleLiveTrackUserAnnotation(location: locationManager.currentLocation)
                     }
-                    MapPolyline(coordinates: Self.previewRouteCoordinates)
+                    MapPolyline(coordinates: coordinates)
                         .stroke(Color(red: 0.2, green: 0.55, blue: 1.0), lineWidth: 4)
                 }
                 .mapStyle(CycleMapDisplayStyle.resolved(from: mapStyleRaw).toMapStyle())
@@ -304,7 +365,7 @@ private struct HomePlannedRouteCard: View {
                 .allowsHitTesting(false)
                 .environment(\.colorScheme, .dark)
 
-                Text(String(localized: "VERIFIED ROUTE"))
+                Text(plan == nil ? String(localized: "VERIFIED ROUTE") : String(localized: "PLANNED RIDE"))
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(Color.white)
                     .padding(.horizontal, 10)
@@ -318,7 +379,7 @@ private struct HomePlannedRouteCard: View {
 
             HStack(alignment: .center, spacing: 14) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(String(localized: "Ridge Loop"))
+                    Text(titleText)
                         .font(.title3.weight(.bold))
                         .foregroundStyle(Color.cyclePrimaryText)
 
@@ -326,11 +387,11 @@ private struct HomePlannedRouteCard: View {
                         HStack(spacing: 6) {
                             Image(systemName: "mappin.and.ellipse")
                                 .imageScale(.small)
-                            Text(String(localized: "24 km"))
+                            Text(distanceText)
                         }
                         HStack(spacing: 6) {
                             Image(systemName: "clock")
-                            Text(String(localized: "55 min"))
+                            Text(durationText)
                         }
                     }
                     .font(.subheadline.weight(.medium))
@@ -343,7 +404,7 @@ private struct HomePlannedRouteCard: View {
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(Color.cyclePrimaryText)
                         .frame(width: 50, height: 50)
-                        .background(Color(red: 235 / 255, green: 235 / 255, blue: 237 / 255))
+                        .background(Color.cycleBorder.opacity(0.85))
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -362,20 +423,37 @@ private struct HomePlannedRouteCard: View {
 }
 
 private struct HomeLastRideStatsRow: View {
+    let lastActivity: RideSummaryPayload?
+
     var body: some View {
         HStack(spacing: 12) {
-            HomeStatMiniCard(
-                title: String(localized: "AVG SPEED"),
-                valuePrimary: "32.4",
-                valueSuffix: String(localized: " km/h"),
-                accentPrimary: true
-            )
-            HomeStatMiniCard(
-                title: String(localized: "TIME"),
-                valuePrimary: "48",
-                valueSuffix: String(localized: " min"),
-                accentPrimary: false
-            )
+            if let lastActivity {
+                HomeStatMiniCard(
+                    title: String(localized: "AVG SPEED"),
+                    valuePrimary: String(format: "%.1f", lastActivity.avgSpeedKmh),
+                    valueSuffix: String(localized: " km/h"),
+                    accentPrimary: true
+                )
+                HomeStatMiniCard(
+                    title: String(localized: "TIME"),
+                    valuePrimary: String(format: "%d", max(1, Int(lastActivity.totalSeconds / 60))),
+                    valueSuffix: String(localized: " min"),
+                    accentPrimary: false
+                )
+            } else {
+                HomeStatMiniCard(
+                    title: String(localized: "AVG SPEED"),
+                    valuePrimary: "—",
+                    valueSuffix: String(localized: " km/h"),
+                    accentPrimary: true
+                )
+                HomeStatMiniCard(
+                    title: String(localized: "TIME"),
+                    valuePrimary: "—",
+                    valueSuffix: String(localized: " min"),
+                    accentPrimary: false
+                )
+            }
         }
     }
 }

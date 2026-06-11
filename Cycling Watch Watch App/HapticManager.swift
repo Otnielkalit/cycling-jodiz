@@ -1,8 +1,8 @@
 //
 //  HapticManager.swift
-//  CyclingJodiz
+//  Cycling Watch Watch App
 //
-//  Created by otnielkalit on 01/06/26.
+//  Created by otnielkalit on 11/06/26.
 //
 
 import WatchKit
