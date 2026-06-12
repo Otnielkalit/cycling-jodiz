@@ -20,6 +20,7 @@ struct ActiveRideView: View {
     @State private var rideStartedAt = Date()
     @State private var odometerMeters: Double = 0
     @State private var lastOdometerLocation: CLLocation?
+    @State private var isPaused = false
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var didApplyFollowCameraAfterFirstFix = false
     @State private var showRideStatsCard = false
@@ -112,6 +113,7 @@ struct ActiveRideView: View {
             applyRideStartCamera()
         }
         .onChange(of: locationManager.currentLocation?.timestamp.timeIntervalSince1970 ?? 0) { _, _ in
+            guard !isPaused else { return }
             accumulateOdometer()
             if !didApplyFollowCameraAfterFirstFix, locationManager.currentLocation != nil {
                 didApplyFollowCameraAfterFirstFix = true
@@ -133,6 +135,19 @@ struct ActiveRideView: View {
                 "isRideActive": true,
                 "nextTurn": "Follow the route"
             ])
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WatchActionPause"))) { _ in
+            isPaused = true
+            WatchSessionManager.shared.sendRideData([
+                "speed": 0.0,
+                "isRideActive": true
+            ])
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WatchActionResume"))) { _ in
+            isPaused = false
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WatchActionEnd"))) { _ in
+            endRide()
         }
         .mapScope(rideMapScope)
     }
@@ -402,6 +417,7 @@ struct ActiveRideView: View {
     }
 
     private func accumulateOdometer() {
+        guard !isPaused else { return }
         guard let loc = locationManager.currentLocation else { return }
         if let prev = lastOdometerLocation {
             odometerMeters += loc.distance(from: prev)

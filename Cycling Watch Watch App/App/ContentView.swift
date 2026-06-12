@@ -21,49 +21,175 @@ struct ContentView: View {
 
 struct ActiveRideWatchView: View {
     @ObservedObject private var session = PhoneSessionManager.shared
+    @State private var isLocalPaused = false
 
     var body: some View {
-        VStack(spacing: 4) {
-            // Kecepatan — paling dominan
-            Text("\(session.speed, specifier: "%.1f")")
-                .font(.system(size: 36,
-                              weight: .bold))
-                .foregroundColor(.orange)
-            Text("km/h")
-                .font(.caption2)
-                .foregroundColor(.gray)
-
-            Divider()
-
-            // Sisa jarak & waktu
-            HStack {
-                VStack {
-                    Text("\(session.distanceRemaining, specifier: "%.1f")")
-                        .font(.title3.bold())
-                    Text("km left")
-                        .font(.caption2)
-                        .foregroundColor(.gray)
+        TabView {
+            // Tab 1: Dashboard (Circular Gauge)
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .stroke(Color.orange.opacity(0.18), lineWidth: 6)
+                        .frame(width: 86, height: 86)
+                    
+                    Circle()
+                        .trim(from: 0.0, to: CGFloat(min(session.speed / 45.0, 1.0)))
+                        .stroke(
+                            AngularGradient(
+                                colors: [.orange, .red, .orange],
+                                center: .center
+                            ),
+                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 86, height: 86)
+                        .animation(.easeInOut(duration: 0.5), value: session.speed)
+                    
+                    VStack(spacing: 0) {
+                        Text(String(format: "%.1f", session.speed))
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                            .foregroundColor(.orange)
+                        Text("km/h")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(.gray)
+                    }
                 }
-                Divider()
-                VStack {
-                    Text(session.elapsedTime)
-                        .font(.title3.bold())
-                    Text("elapsed")
-                        .font(.caption2)
-                        .foregroundColor(.gray)
+                .padding(.top, 4)
+                
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "bicycle")
+                                .font(.system(size: 11))
+                                .foregroundColor(.orange)
+                            Text(String(format: "%.1f km", session.distanceRemaining))
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                        }
+                        Text("left")
+                            .font(.system(size: 9))
+                            .foregroundColor(.gray)
+                            .padding(.leading, 14)
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "stopwatch.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(.orange)
+                            Text(session.elapsedTime)
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                        }
+                        Text("elapsed")
+                            .font(.system(size: 9))
+                            .foregroundColor(.gray)
+                            .padding(.leading, 14)
+                    }
                 }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 6)
             }
-
-            // Next turn
-            if !session.nextTurn.isEmpty {
-                Text(session.nextTurn)
-                    .font(.caption)
-                    .foregroundColor(.orange)
+            .padding(.top, -10)
+            
+            // Tab 2: Navigation Directions
+            VStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.12))
+                        .frame(width: 64, height: 64)
+                    
+                    Image(systemName: navigationArrowName)
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.orange)
+                }
+                
+                Text(session.nextTurn.isEmpty ? "Follow the route" : session.nextTurn)
+                    .font(.system(.body, design: .rounded))
+                    .foregroundColor(.white)
+                    .fontWeight(.medium)
                     .multilineTextAlignment(.center)
-                    .padding(.top, 4)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .padding(.horizontal, 4)
+            }
+            .padding(.top, -10)
+            .onChange(of: session.nextTurn) { _, newValue in
+                triggerHapticForDirection(newValue)
+            }
+            
+            // Tab 3: Controls
+            VStack(spacing: 12) {
+                Text(isLocalPaused ? "Ride Paused" : "Active Ride")
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundColor(isLocalPaused ? .yellow : .white)
+                    .padding(.top, -10)
+                
+                HStack(spacing: 14) {
+                    Button {
+                        if isLocalPaused {
+                            session.resumeRide()
+                            isLocalPaused = false
+                        } else {
+                            session.pauseRide()
+                            isLocalPaused = true
+                        }
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: isLocalPaused ? "play.fill" : "pause.fill")
+                                .font(.title3)
+                            Text(isLocalPaused ? "Resume" : "Pause")
+                                .font(.system(size: 10, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(isLocalPaused ? .green : .orange)
+                    
+                    Button {
+                        session.endRide()
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: "stop.fill")
+                                .font(.title3)
+                            Text("End")
+                                .font(.system(size: 10, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+                }
+                .padding(.horizontal, 4)
             }
         }
-        .padding()
+        .tabViewStyle(PageTabViewStyle())
+    }
+
+    private var navigationArrowName: String {
+        let turn = session.nextTurn.lowercased()
+        if turn.contains("left") {
+            return "arrow.turn.up.left"
+        } else if turn.contains("right") {
+            return "arrow.turn.up.right"
+        } else if turn.contains("destination") || turn.contains("arrive") {
+            return "mappin.and.ellipse"
+        } else {
+            return "arrow.up"
+        }
+    }
+
+    private func triggerHapticForDirection(_ turnText: String) {
+        let turn = turnText.lowercased()
+        if turn.contains("left") {
+            HapticManager.shared.turnLeft()
+        } else if turn.contains("right") {
+            HapticManager.shared.turnRight()
+        } else if !turnText.isEmpty {
+            HapticManager.shared.approachingTurn()
+        }
     }
 }
 
@@ -111,4 +237,3 @@ struct IdleWatchView: View {
 #Preview {
     ContentView()
 }
-

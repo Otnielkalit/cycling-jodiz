@@ -87,6 +87,14 @@ final class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         flushPending()
     }
 
+    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+        if let action = message["action"] as? String {
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: NSNotification.Name("WatchAction\(action.capitalized)"), object: nil)
+            }
+        }
+    }
+
     func sessionDidBecomeInactive(_ session: WCSession) {}
 
     func sessionDidDeactivate(_ session: WCSession) {

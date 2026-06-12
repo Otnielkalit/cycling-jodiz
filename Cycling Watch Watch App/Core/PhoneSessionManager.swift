@@ -18,6 +18,21 @@ final class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     @Published var isRideActive: Bool = false
     @Published var nextTurn: String = ""
 
+    func pauseRide() {
+        guard WCSession.default.isReachable else { return }
+        WCSession.default.sendMessage(["action": "pause"], replyHandler: nil, errorHandler: nil)
+    }
+
+    func resumeRide() {
+        guard WCSession.default.isReachable else { return }
+        WCSession.default.sendMessage(["action": "resume"], replyHandler: nil, errorHandler: nil)
+    }
+
+    func endRide() {
+        guard WCSession.default.isReachable else { return }
+        WCSession.default.sendMessage(["action": "end"], replyHandler: nil, errorHandler: nil)
+    }
+
     override init() {
         super.init()
 
