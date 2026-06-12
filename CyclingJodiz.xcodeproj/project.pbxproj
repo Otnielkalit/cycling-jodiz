@@ -445,7 +445,7 @@
 				DEVELOPMENT_TEAM = 3W3H2RL43R;
 				INFOPLIST_KEY_CFBundleDisplayName = "Cycling Watch";
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "crafit-team.Cycling-Watch";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jodiz.CyclingJodiz.watch";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
@@ -462,7 +462,7 @@
 				DEVELOPMENT_TEAM = 3W3H2RL43R;
 				INFOPLIST_KEY_CFBundleDisplayName = "Cycling Watch";
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "crafit-team.Cycling-Watch";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jodiz.CyclingJodiz.watch";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
@@ -490,7 +490,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "crafit-team.Cycling-Watch.watchkitapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jodiz.CyclingJodiz.watchkitapp";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -524,7 +524,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "crafit-team.Cycling-Watch.watchkitapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jodiz.CyclingJodiz.watchkitapp";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
