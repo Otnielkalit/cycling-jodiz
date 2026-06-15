@@ -8,6 +8,23 @@
 import CoreLocation
 import MapKit
 
+enum MapKitRouteDirectionsError: LocalizedError {
+    case noRoutes
+    case noRoutesWithinTargetLengthCap
+    case underlying(Error)
+
+    var errorDescription: String? {
+        switch self {
+        case .noRoutes:
+            return String(localized: "No routes returned from Maps.")
+        case .noRoutesWithinTargetLengthCap:
+            return String(localized: "No routes within 2 km over your target length. Try different places or distance.")
+        case .underlying(let error):
+            return error.localizedDescription
+        }
+    }
+}
+
 actor MapDirectionsRequestThrottle {
     private var requestTimes: [Date] = []
     private let maxRequestsPerWindow = 35
