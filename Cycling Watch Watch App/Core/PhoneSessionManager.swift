@@ -8,6 +8,7 @@
 import Combine
 import Foundation
 import WatchConnectivity
+import WatchKit
 
 final class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     static let shared = PhoneSessionManager()
@@ -17,6 +18,11 @@ final class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     @Published var elapsedTime: String = "00:00"
     @Published var isRideActive: Bool = false
     @Published var nextTurn: String = ""
+    @Published var showSummary: Bool = false
+    @Published var summaryDistance: Double = 0
+    @Published var summaryAvgSpeed: Double = 0
+    @Published var summaryTime: String = "00:00"
+    @Published var isReachable: Bool = false
 
     func pauseRide() {
         guard WCSession.default.isReachable else { return }
@@ -40,8 +46,18 @@ final class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
 
         WCSession.default.delegate = self
         WCSession.default.activate()
+        self.isReachable = WCSession.default.isReachable
     }
 
+    private func updateReachability() {
+        DispatchQueue.main.async {
+            self.isReachable = WCSession.default.isReachable
+        }
+    }
+
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        updateReachability()
+    }
 
     func session(
         _ session: WCSession,
@@ -53,6 +69,7 @@ final class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
             return
         }
         guard activationState == .activated else { return }
+        updateReachability()
         // iPhone may have sent context before the watch finished activating.
         let ctx = session.receivedApplicationContext
         if !ctx.isEmpty {
@@ -64,6 +81,13 @@ final class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         _ session: WCSession,
         didReceiveMessage message: [String: Any]
     ) {
+        if let action = message["action"] as? String, action == "ping" {
+            WKInterfaceDevice.current().play(.click)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                WKInterfaceDevice.current().play(.notification)
+            }
+            return
+        }
         updateData(from: message)
     }
 
@@ -76,11 +100,18 @@ final class PhoneSessionManager: NSObject, ObservableObject, WCSessionDelegate {
 
     private func updateData(from dict: [String: Any]) {
         DispatchQueue.main.async {
+            let newIsActive = Self.plistBool(dict["isRideActive"])
+            if self.isRideActive && !newIsActive {
+                self.summaryDistance = Self.plistDouble(dict["summaryDistance"])
+                self.summaryAvgSpeed = Self.plistDouble(dict["summaryAvgSpeed"])
+                self.summaryTime = dict["summaryTime"] as? String ?? self.elapsedTime
+                self.showSummary = true
+            }
+            
             self.speed = Self.plistDouble(dict["speed"])
             self.distanceRemaining = Self.plistDouble(dict["distanceRemaining"])
             self.elapsedTime = dict["elapsedTime"] as? String ?? "00:00"
-            // WatchConnectivity often delivers plist booleans as NSNumber; plain `as? Bool` stays false.
-            self.isRideActive = Self.plistBool(dict["isRideActive"])
+            self.isRideActive = newIsActive
             self.nextTurn = dict["nextTurn"] as? String ?? ""
         }
     }

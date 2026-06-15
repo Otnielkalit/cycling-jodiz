@@ -24,7 +24,6 @@ struct ActiveRideView: View {
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var didApplyFollowCameraAfterFirstFix = false
     @State private var showRideStatsCard = false
-    /// When the map style supports pitch, this toggles between follow-with-heading (flat) and an explicit pitched `MapCamera` on the rider.
     @State private var rideViewUsesPitchedCamera = true
     @State private var lastPitchedFollowCameraAt = Date.distantPast
     @Namespace private var rideMapScope
@@ -41,7 +40,6 @@ struct ActiveRideView: View {
     }
 
     var body: some View {
-        
         Map(position: $cameraPosition, scope: rideMapScope) {
             MapPolyline(coordinates: coordCL)
                 .stroke(Color.cycleAccent, style: polylineStrokeStyle)
@@ -55,7 +53,6 @@ struct ActiveRideView: View {
             activeRideAnnotations
         }
         .mapStyle(rideMapStyle.toMapStyle())
-        // Suppress MapKit’s automatic top-trailing compass / scale / pitch chrome; we place `MapCompass(scope:)` in the overlay stack.
         .mapControlVisibility(.hidden)
         .ignoresSafeArea()
         .overlay(alignment: .top) {
@@ -71,7 +68,6 @@ struct ActiveRideView: View {
                 Spacer()
             }
             .padding(.trailing, 12)
-            // Re-enable scoped map controls only in this stack (middle trailing).
             .mapControlVisibility(.visible)
         }
         .overlay(alignment: .bottom) {
@@ -121,13 +117,13 @@ struct ActiveRideView: View {
             } else if rideMapStyle.prefersPitchedMapCamera, rideViewUsesPitchedCamera {
                 maybeRefreshPitchedFollowCamera()
             }
-            
+
             let remaining = max(0, config.totalRouteMeters - odometerMeters)
             let elapsedSec = Date().timeIntervalSince(rideStartedAt)
             let m = Int(elapsedSec) / 60
             let s = Int(elapsedSec) % 60
             let formattedTime = String(format: "%02d:%02d", m, s)
-            
+
             WatchSessionManager.shared.sendRideData([
                 "speed": currentSpeedKmh,
                 "distanceRemaining": remaining / 1000.0,
@@ -183,8 +179,6 @@ struct ActiveRideView: View {
         }
     }
 
-    
-    /// System map compass, optional 2D/3D, and map type stacked on the middle trailing edge.
     private var rideRightMapControlsStack: some View {
         VStack(spacing: 10) {
             MapCompass(scope: rideMapScope)
@@ -231,7 +225,6 @@ struct ActiveRideView: View {
         }
     }
 
-    /// Single control to snap the camera back onto the rider (same as the old pan-only recenter).
     private var rideCenterOnUserFloatingButton: some View {
         Button {
             applyRideStartCamera()
@@ -294,7 +287,6 @@ struct ActiveRideView: View {
         .frame(maxWidth: 300)
     }
 
-    
     private var bottomHudLightDesign: some View {
         ZStack(alignment: .topTrailing) {
             VStack(spacing: 12) {
@@ -425,7 +417,6 @@ struct ActiveRideView: View {
         lastOdometerLocation = loc
     }
 
-    /// Tight region around the route start (or route center) when GPS is not ready yet.
     private func compactRouteFallbackRegion() -> MKCoordinateRegion {
         let coords = coordCL
         guard let first = coords.first else {
@@ -448,7 +439,6 @@ struct ActiveRideView: View {
         return MKCoordinateRegion(center: mid, span: MKCoordinateSpan(latitudeDelta: spanLat, longitudeDelta: spanLon))
     }
 
-    /// Like Google Maps navigation start: follow the rider with heading; before GPS, show route entry.
     private func applyRideStartCamera() {
         let fallback = compactRouteFallbackRegion()
         guard let loc = locationManager.currentLocation else {
@@ -474,14 +464,14 @@ struct ActiveRideView: View {
         }
         let span = MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008)
         let latRad = coord.latitude * .pi / 180
-        let metersPerDegLat = 111_320.0
-        let metersPerDegLon = max(cos(latRad) * 111_320.0, 1.0)
+        let metersPerDegLat = 111320.0
+        let metersPerDegLon = max(cos(latRad) * 111320.0, 1.0)
         let visibleNorthSouth = span.latitudeDelta * metersPerDegLat
         let visibleEastWest = span.longitudeDelta * metersPerDegLon
         let footprint = max(visibleNorthSouth, visibleEastWest)
         let pitch = 52.0
         let pitchRad = pitch * .pi / 180
-        let distance = min(max(footprint / (1.85 * max(cos(pitchRad), 0.18)), 420), 25_000)
+        let distance = min(max(footprint / (1.85 * max(cos(pitchRad), 0.18)), 420), 25000)
         let cam = MapCamera(centerCoordinate: coord, distance: distance, heading: heading, pitch: pitch)
         cameraPosition = .camera(cam)
     }
@@ -495,7 +485,20 @@ struct ActiveRideView: View {
     }
 
     private func endRide() {
-        WatchSessionManager.shared.sendRideData(["isRideActive": false])
+        let elapsedSec = Date().timeIntervalSince(rideStartedAt)
+        let m = Int(elapsedSec) / 60
+        let s = Int(elapsedSec) % 60
+        let formattedTime = String(format: "%02d:%02d", m, s)
+
+        let avgSpeedKmh = (odometerMeters / 1000.0) / (max(elapsedSec, 1) / 3600.0)
+
+        WatchSessionManager.shared.sendRideData([
+            "isRideActive": false,
+            "summaryDistance": odometerMeters / 1000.0,
+            "summaryAvgSpeed": avgSpeedKmh,
+            "summaryTime": formattedTime
+        ])
+
         let ended = Date()
         let payload = RideSummaryPayload(
             id: UUID(),

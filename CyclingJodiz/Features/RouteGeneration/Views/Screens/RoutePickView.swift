@@ -25,6 +25,7 @@ struct RoutePickView: View {
     @State private var plannedStartDate = Date().addingTimeInterval(7200)
     @State private var showRouteSavedConfirmation = false
     @State private var showMapRecenterButton = false
+    @State private var customRouteName = ""
 
     
     private let mapPreferredMaxHeight: CGFloat = 260
@@ -150,6 +151,11 @@ struct RoutePickView: View {
         VStack(spacing: 10) {
             Button {
                 plannedStartDate = Date().addingTimeInterval(7200)
+                if !routes.isEmpty, routes.indices.contains(selectedIndex) {
+                    customRouteName = routes[selectedIndex].title
+                } else {
+                    customRouteName = ""
+                }
                 showSaveForLaterSheet = true
             } label: {
                 Label(String(localized: "Save for later"), systemImage: "bookmark")
@@ -183,12 +189,8 @@ struct RoutePickView: View {
         NavigationStack {
             Form {
                 Section {
-                    if !routes.isEmpty, routes.indices.contains(selectedIndex) {
-                        LabeledContent(String(localized: "Route")) {
-                            Text(routes[selectedIndex].title)
-                                .foregroundStyle(Color.cycleSecondaryText)
-                        }
-                    }
+                    TextField(String(localized: "Route name"), text: $customRouteName)
+                        .autocorrectionDisabled()
                     DatePicker(
                         String(localized: "Planned start"),
                         selection: $plannedStartDate,
@@ -708,7 +710,16 @@ struct RoutePickView: View {
     private func saveSelectedRouteForLater() {
         guard !routes.isEmpty, routes.indices.contains(selectedIndex) else { return }
         let route = routes[selectedIndex]
-        let config = ActiveRideConfig.from(route: route, pickContext: context)
+        let name = customRouteName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalTitle = name.isEmpty ? route.title : name
+        
+        let meters = ActiveRideConfig.polylineLengthMeters(route.coordinates)
+        let config = ActiveRideConfig(
+            routeTitle: finalTitle,
+            coordinates: route.coordinates.map { MapCoordinate($0) },
+            totalRouteMeters: meters,
+            pickContext: context
+        )
         let plan = SavedRoutePlan(
             id: UUID(),
             plannedStart: plannedStartDate,

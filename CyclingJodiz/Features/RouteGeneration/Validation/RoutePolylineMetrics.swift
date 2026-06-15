@@ -16,10 +16,6 @@ struct RouteBreakdownRow: Hashable, Sendable {
 }
 
 enum RoutePolylineMetrics {
-
-    
-
-    
     static func sharpTurnEstimateCount(
         coordinates: [CLLocationCoordinate2D],
         minSegmentLengthMeters: CLLocationDistance = 12,

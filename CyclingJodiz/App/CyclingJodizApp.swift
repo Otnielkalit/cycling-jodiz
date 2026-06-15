@@ -12,7 +12,6 @@ struct CyclingJodizApp: App {
     @AppStorage(CycleAppColorScheme.storageKey) private var appColorSchemeRaw: String = CycleAppColorScheme.system.rawValue
 
     init() {
-        // Start WatchConnectivity early so the first ride payload isn’t dropped before activation finishes.
         _ = WatchSessionManager.shared
     }
 

@@ -11,7 +11,6 @@ class HapticManager {
     static let shared = HapticManager()
     
     func turnRight() {
-        // 3 ketukan pendek
         WKInterfaceDevice.current()
             .play(.directionUp)
         DispatchQueue.main.asyncAfter(
@@ -27,7 +26,6 @@ class HapticManager {
     }
     
     func turnLeft() {
-        // 2 ketukan panjang
         WKInterfaceDevice.current()
             .play(.directionDown)
         DispatchQueue.main.asyncAfter(
@@ -38,7 +36,6 @@ class HapticManager {
     }
     
     func approachingTurn() {
-        // Warning 200m sebelum belok
         WKInterfaceDevice.current()
             .play(.notification)
     }

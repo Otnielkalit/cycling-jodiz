@@ -14,9 +14,9 @@ import WeatherKit
 @Observable
 final class HomeWeatherViewModel {
     private(set) var temperatureText: String = "—"
-    private(set) var summaryText: String = String(localized: "Waiting for location…")
+    private(set) var summaryText: String = .init(localized: "Waiting for location…")
     private(set) var symbolName: String = "location.circle"
-    
+
     private(set) var weatherCondition: WeatherCondition?
     private(set) var palette: WeatherCardPalette = .neutral
     private(set) var isLoading: Bool = false
@@ -54,8 +54,7 @@ final class HomeWeatherViewModel {
         if let lastLoc = lastFetchedLocation, let lastTime = lastFetchedTime {
             let distance = location.distance(from: lastLoc)
             let elapsed = Date().timeIntervalSince(lastTime)
-            if distance < 1000 && elapsed < 300 {
-                // Ignore small movements or frequent updates if already fetched recently
+            if distance < 1000, elapsed < 300 {
                 return
             }
         }
@@ -91,12 +90,12 @@ final class HomeWeatherViewModel {
                 summary += " · " + String(localized: "Wind") + " " + windText
             }
             summaryText = summary
-            
+
             lastFetchedLocation = location
             lastFetchedTime = Date()
         } catch {
             if Task.isCancelled { return }
-            
+
             temperatureText = "—"
             summaryText = Self.userFacingWeatherErrorMessage(for: error)
             symbolName = "exclamationmark.triangle"
@@ -129,7 +128,6 @@ final class HomeWeatherViewModel {
         #endif
     }
 
-    
     private static func isWeatherKitJWTAuthenticatorError(_ ns: NSError) -> Bool {
         ns.domain.contains("WDSJWTAuthenticator") && ns.code == 2
     }

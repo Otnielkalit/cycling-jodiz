@@ -8,10 +8,18 @@
 
 /* Begin PBXBuildFile section */
 		CEA83BBB2FCD47180087CC98 /* Cycling Watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = CEA83BBA2FCD47180087CC98 /* Cycling Watch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CEC045472FDC092900CC8E7F /* Cycling Watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = CEA83BBA2FCD47180087CC98 /* Cycling Watch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		CEA83BBC2FCD47180087CC98 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CE94BBE32FBEAD840042755F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CEA83BB92FCD47180087CC98;
+			remoteInfo = "Cycling Watch Watch App";
+		};
+		CEC045482FDC092900CC8E7F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CE94BBE32FBEAD840042755F /* Project object */;
 			proxyType = 1;
@@ -28,6 +36,17 @@
 			dstSubfolderSpec = 16;
 			files = (
 				CEA83BBB2FCD47180087CC98 /* Cycling Watch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CEC0454A2FDC092900CC8E7F /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				CEC045472FDC092900CC8E7F /* Cycling Watch Watch App.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -76,6 +95,7 @@
 			children = (
 				CE94BBED2FBEAD840042755F /* CyclingJodiz */,
 				CEA83BBE2FCD47180087CC98 /* Cycling Watch Watch App */,
+				CEC045462FDC092900CC8E7F /* Frameworks */,
 				CE94BBEC2FBEAD840042755F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +110,13 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		CEC045462FDC092900CC8E7F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -100,10 +127,12 @@
 				CE94BBE72FBEAD840042755F /* Sources */,
 				CE94BBE82FBEAD840042755F /* Frameworks */,
 				CE94BBE92FBEAD840042755F /* Resources */,
+				CEC0454A2FDC092900CC8E7F /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				CEC045492FDC092900CC8E7F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				CE94BBED2FBEAD840042755F /* CyclingJodiz */,
@@ -244,6 +273,11 @@
 			isa = PBXTargetDependency;
 			target = CEA83BB92FCD47180087CC98 /* Cycling Watch Watch App */;
 			targetProxy = CEA83BBC2FCD47180087CC98 /* PBXContainerItemProxy */;
+		};
+		CEC045492FDC092900CC8E7F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CEA83BB92FCD47180087CC98 /* Cycling Watch Watch App */;
+			targetProxy = CEC045482FDC092900CC8E7F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -445,7 +479,7 @@
 				DEVELOPMENT_TEAM = 3W3H2RL43R;
 				INFOPLIST_KEY_CFBundleDisplayName = "Cycling Watch";
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.jodiz.CyclingJodiz.watch";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jodiz.CyclingJodiz.watch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
@@ -462,7 +496,7 @@
 				DEVELOPMENT_TEAM = 3W3H2RL43R;
 				INFOPLIST_KEY_CFBundleDisplayName = "Cycling Watch";
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.jodiz.CyclingJodiz.watch";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jodiz.CyclingJodiz.watch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
@@ -484,13 +518,14 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Cycling Watch";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKWatchOnly = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jodiz.CyclingJodiz;
+				INFOPLIST_KEY_WKWatchOnly = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.jodiz.CyclingJodiz.watchkitapp";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jodiz.CyclingJodiz.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -518,13 +553,14 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Cycling Watch";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKWatchOnly = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jodiz.CyclingJodiz;
+				INFOPLIST_KEY_WKWatchOnly = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.jodiz.CyclingJodiz.watchkitapp";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jodiz.CyclingJodiz.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;

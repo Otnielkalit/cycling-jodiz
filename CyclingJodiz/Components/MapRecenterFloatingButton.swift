@@ -8,11 +8,10 @@
 import MapKit
 import SwiftUI
 
-/// Floating control (Google Maps–style) to snap the map back after the user pans or zooms.
 struct MapRecenterFloatingButton: View {
     let action: () -> Void
     var systemImage: String = "scope"
-    var accessibilityLabel: String = String(localized: "Recenter map")
+    var accessibilityLabel: String = .init(localized: "Recenter map")
 
     var body: some View {
         Button(action: action) {
@@ -30,7 +29,6 @@ struct MapRecenterFloatingButton: View {
 }
 
 extension View {
-    /// Shows the recenter affordance when the map reports `MapCameraPosition.positionedByUser` (after pan/zoom), and hides it after programmatic camera updates.
     func mapRecenterGestureTracking(position: Binding<MapCameraPosition>, showRecenter: Binding<Bool>) -> some View {
         onMapCameraChange(frequency: .onEnd) {
             showRecenter.wrappedValue = position.wrappedValue.positionedByUser

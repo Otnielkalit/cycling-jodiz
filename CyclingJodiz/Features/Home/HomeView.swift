@@ -44,6 +44,9 @@ struct HomeView: View {
             weatherViewModel.refresh(for: locationManager.currentLocation)
             loadPersistedData()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ResetAppDataNotification"))) { _ in
+            loadPersistedData()
+        }
         .onChange(of: locationManager.currentLocation) { _, newValue in
             weatherViewModel.refresh(for: newValue)
         }
@@ -72,22 +75,28 @@ struct HomeView: View {
     @ViewBuilder
     private var homeMainColumn: some View {
         VStack(alignment: .leading, spacing: 22) {
+            if locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted {
+                HomeLocationDeniedBanner()
+            }
+            
             homeGreetingSection
             HomePrimaryGenerateRouteCard {
                 path.append(RouteFlow.hub)
             }
             homeUpNextHeader
-            HomePlannedRouteCard(
-                plan: savedPlans.first,
-                locationManager: locationManager,
-                onStartRide: {
-                    if let firstPlan = savedPlans.first {
+            
+            if let firstPlan = savedPlans.first {
+                HomePlannedRouteCard(
+                    plan: firstPlan,
+                    locationManager: locationManager,
+                    onStartRide: {
                         path.append(RouteFlow.activeRide(firstPlan.config))
-                    } else {
-                        path.append(RouteFlow.activeRide(.demoRidgeLoop()))
                     }
-                }
-            )
+                )
+            } else {
+                HomeOnboardingRouteCard()
+            }
+            
             homeLastRideHeader
             HomeLastRideStatsRow(lastActivity: lastActivity)
         }
@@ -294,40 +303,26 @@ private struct HomePrimaryGenerateRouteCard: View {
 }
 
 private struct HomePlannedRouteCard: View {
-    let plan: SavedRoutePlan?
+    let plan: SavedRoutePlan
     var locationManager: LocationManager
     var onStartRide: () -> Void
 
     private var titleText: String {
-        plan?.config.routeTitle ?? String(localized: "Ridge Loop")
+        plan.config.routeTitle
     }
 
     private var distanceText: String {
-        if let plan {
-            return String(format: "%.1f km", plan.config.totalRouteMeters / 1000)
-        }
-        return String(localized: "24 km")
+        String(format: "%.1f km", plan.config.totalRouteMeters / 1000)
     }
 
     private var durationText: String {
-        if let plan {
-            let seconds = plan.config.totalRouteMeters / 5.0
-            let minutes = max(1, Int(seconds / 60))
-            return "\(minutes) min"
-        }
-        return String(localized: "55 min")
+        let seconds = plan.config.totalRouteMeters / 5.0
+        let minutes = max(1, Int(seconds / 60))
+        return "\(minutes) min"
     }
 
     private var coordinates: [CLLocationCoordinate2D] {
-        if let plan {
-            return plan.config.coordinates.map(\.clLocationCoordinate2D)
-        }
-        return [
-            CLLocationCoordinate2D(latitude: -6.198, longitude: 106.805),
-            CLLocationCoordinate2D(latitude: -6.208, longitude: 106.818),
-            CLLocationCoordinate2D(latitude: -6.218, longitude: 106.808),
-            CLLocationCoordinate2D(latitude: -6.210, longitude: 106.798)
-        ]
+        plan.config.coordinates.map(\.clLocationCoordinate2D)
     }
 
     private var initialCameraPosition: MapCameraPosition {
@@ -358,14 +353,14 @@ private struct HomePlannedRouteCard: View {
                         CycleLiveTrackUserAnnotation(location: locationManager.currentLocation)
                     }
                     MapPolyline(coordinates: coordinates)
-                        .stroke(Color(red: 0.2, green: 0.55, blue: 1.0), lineWidth: 4)
+                        .stroke(Color.cycleAccent, lineWidth: 4)
                 }
                 .mapStyle(CycleMapDisplayStyle.resolved(from: mapStyleRaw).toMapStyle())
                 .frame(height: Self.mapPreviewHeight)
                 .allowsHitTesting(false)
                 .environment(\.colorScheme, .dark)
 
-                Text(plan == nil ? String(localized: "VERIFIED ROUTE") : String(localized: "PLANNED RIDE"))
+                Text(String(localized: "PLANNED RIDE"))
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(Color.white)
                     .padding(.horizontal, 10)
@@ -391,6 +386,7 @@ private struct HomePlannedRouteCard: View {
                         }
                         HStack(spacing: 6) {
                             Image(systemName: "clock")
+                                .imageScale(.small)
                             Text(durationText)
                         }
                     }
@@ -402,9 +398,9 @@ private struct HomePlannedRouteCard: View {
                 Button(action: onStartRide) {
                     Image(systemName: "play.fill")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Color.cyclePrimaryText)
+                        .foregroundStyle(Color.white)
                         .frame(width: 50, height: 50)
-                        .background(Color.cycleBorder.opacity(0.85))
+                        .background(Color.cycleAccent)
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -422,12 +418,50 @@ private struct HomePlannedRouteCard: View {
     }
 }
 
+private struct HomeOnboardingRouteCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.cycleAccent.opacity(0.1))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: "map")
+                        .font(.title3.weight(.bold))
+                        .foregroundColor(Color.cycleAccent)
+                }
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(String(localized: "No Planned Routes Yet"))
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(Color.cyclePrimaryText)
+                    
+                    Text(String(localized: "Generate your target performance route using the generator above. Your route will appear here once saved."))
+                        .font(.subheadline)
+                        .foregroundColor(Color.cycleSecondaryText)
+                        .lineSpacing(2)
+                }
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.cycleCardSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.cycleBorder.opacity(0.55), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+    }
+}
+
 private struct HomeLastRideStatsRow: View {
     let lastActivity: RideSummaryPayload?
 
     var body: some View {
-        HStack(spacing: 12) {
-            if let lastActivity {
+        if let lastActivity {
+            HStack(spacing: 12) {
                 HomeStatMiniCard(
                     title: String(localized: "AVG SPEED"),
                     valuePrimary: String(format: "%.1f", lastActivity.avgSpeedKmh),
@@ -440,20 +474,27 @@ private struct HomeLastRideStatsRow: View {
                     valueSuffix: String(localized: " min"),
                     accentPrimary: false
                 )
-            } else {
-                HomeStatMiniCard(
-                    title: String(localized: "AVG SPEED"),
-                    valuePrimary: "—",
-                    valueSuffix: String(localized: " km/h"),
-                    accentPrimary: true
-                )
-                HomeStatMiniCard(
-                    title: String(localized: "TIME"),
-                    valuePrimary: "—",
-                    valueSuffix: String(localized: " min"),
-                    accentPrimary: false
-                )
             }
+        } else {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: "shoeprints.fill")
+                    .foregroundColor(Color.cycleSecondaryText.opacity(0.6))
+                    .font(.title2)
+                
+                Text(String(localized: "Your distance and average speed will be saved here after your first completed ride."))
+                    .font(.caption)
+                    .foregroundColor(Color.cycleSecondaryText)
+                    .lineSpacing(2)
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.cycleCardSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.cycleBorder.opacity(0.55), lineWidth: 1)
+            )
         }
     }
 }
@@ -487,6 +528,55 @@ private struct HomeStatMiniCard: View {
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.cycleBorder.opacity(0.4), lineWidth: 1)
+        )
+    }
+}
+
+private struct HomeLocationDeniedBanner: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "location.slash.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.red)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(localized: "Location Access Denied"))
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(Color.cyclePrimaryText)
+                    
+                    Text(String(localized: "Velotrack needs location access to plan routes, track speed, and navigate. Please enable location services in iOS settings."))
+                        .font(.caption)
+                        .foregroundColor(Color.cycleSecondaryText)
+                        .lineSpacing(2)
+                }
+            }
+            
+            Button {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            } label: {
+                HStack {
+                    Spacer()
+                    Image(systemName: "gearshape")
+                    Text(String(localized: "Open Settings"))
+                    Spacer()
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.white)
+                .padding(.vertical, 8)
+                .background(Color.cycleAccent)
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .background(Color.red.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.red.opacity(0.25), lineWidth: 1)
         )
     }
 }
