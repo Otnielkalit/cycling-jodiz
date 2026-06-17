@@ -9,6 +9,7 @@ import CoreLocation
 import MapKit
 import Observation
 import SwiftUI
+import AVFoundation
 
 struct ActiveRideView: View {
     @Binding var path: NavigationPath
@@ -27,6 +28,8 @@ struct ActiveRideView: View {
     @State private var rideViewUsesPitchedCamera = true
     @State private var lastPitchedFollowCameraAt = Date.distantPast
     @Namespace private var rideMapScope
+    @State private var speechSynthesizer = AVSpeechSynthesizer()
+
 
     private var rideMapStyle: CycleMapDisplayStyle {
         CycleMapDisplayStyle.resolved(from: mapStyleRaw)
@@ -100,6 +103,13 @@ struct ActiveRideView: View {
                 "elapsedTime": "00:00",
                 "nextTurn": "Follow the route"
             ])
+            
+            let utterance = AVSpeechUtterance(string: "Starting ride. On route, follow the highlighted route.")
+            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+            speechSynthesizer.speak(utterance)
+        }
+        .onDisappear {
+            speechSynthesizer.stopSpeaking(at: .immediate)
         }
         .onChange(of: mapStyleRaw) { _, newRaw in
             let style = CycleMapDisplayStyle.resolved(from: newRaw)
@@ -485,6 +495,7 @@ struct ActiveRideView: View {
     }
 
     private func endRide() {
+        speechSynthesizer.stopSpeaking(at: .immediate)
         let elapsedSec = Date().timeIntervalSince(rideStartedAt)
         let m = Int(elapsedSec) / 60
         let s = Int(elapsedSec) % 60
